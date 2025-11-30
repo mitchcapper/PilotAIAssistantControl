@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="PilotAIAssistantControl/PilotAIAssistantControl.csproj" />
+  <Project Path="TestWPFApp/TestWPFApp.csproj" />
+</Solution>
