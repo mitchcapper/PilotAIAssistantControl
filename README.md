@@ -1,8 +1,19 @@
 # PilotAiAssistControl
 
-A WPF (and beta WinUI3) user control that provides an AI chat assistant interface with support for multiple AI providers (GitHub Copilot, OpenAI, and custom providers). Includes both a standalone chat control and an expandable sidebar version.  It has integrated support for discovery of local existing GitHub Copilot tokens (ie from vscode) and also integrates a login flow for users that don't already have it present.
+A WPF (and beta WinUI3) user control that provides an AI chat assistant interface with support for multiple AI providers (GitHub Copilot, OpenAI, and custom providers). It is meant to be a very quick way to bolt on an AI agent to any application you have.  You can provide context and direct action buttons inline with the AI responses.  It includes both a standalone chat control and an expandable sidebar version.  It has integrated support for discovery of local existing GitHub Copilot tokens (ie from vscode) and also integrates a login flow for users that don't already have it present.
+
+The included Expandable control allows it to easily collapse down to 40 pixels when not used.  It has built in configuration UI for easy setup.
 
 You can optionally provide a "reference text/document" which can be a longer document the user is working on and allow the user to control how much(if any) of it to send along.
+
+## Screenshots
+
+| In this screenshot it is the left panel | Config Pane | Collapsed View |
+|---|---|---|
+| <a href="screenshots/main_shot.png"><img src="screenshots/main_shot.png" alt="Main Screenshot" width="500"/></a> | <a href="screenshots/config_shot.png"><img src="screenshots/config_shot.png" alt="Config Screenshot" height="300"/></a> | <a href="screenshots/collapsed_shot.png"><img src="screenshots/collapsed_shot.png" alt="Collapsed Column" height="300"/></a> |
+
+
+
 
 <!-- TOC -->
 
