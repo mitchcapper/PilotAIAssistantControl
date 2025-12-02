@@ -2,7 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+#if WPF
 using System.Windows;
+#else
+using Windows.ApplicationModel.DataTransfer;
+#endif
 
 namespace PilotAIAssistantControl {
 	public interface ICodeBlock {
@@ -10,7 +14,14 @@ namespace PilotAIAssistantControl {
 		string Code { get; }
 	}
 
-	public record BlockAction(ICodeblockAction Action, CodeBlock Block);
+	public class BlockAction {
+		public BlockAction(ICodeblockAction action, CodeBlock block) {
+			Action = action;
+			Block = block;
+		}
+		public ICodeblockAction Action { get; set; }
+		public CodeBlock Block { get; set; }
+	}
 	public class GenericCodeblockAction : ICodeblockAction {
 		public GenericCodeblockAction(string displayName, Func<ICodeBlock, Task<bool>> DoActionDel) {
 			DisplayName = displayName;
@@ -24,9 +35,18 @@ namespace PilotAIAssistantControl {
 
 		public Task<bool> DoAction(ICodeBlock block) => DoActionDel(block);
 		public static GenericCodeblockAction ClipboardAction = new GenericCodeblockAction("📋 Copy", async (block) => {
+#if ! WPF
+			var dataPackage = new DataPackage();
+			dataPackage.RequestedOperation = DataPackageOperation.Copy;
+			dataPackage.SetText(block.Code);
+#endif
 			for (var x = 0; x < 2; x++) {
 				try {
+#if WPF
 					Clipboard.SetText(block.Code);
+#else
+					Clipboard.SetContent(dataPackage);
+#endif
 					return true;
 				} catch {
 					await Task.Delay(150);

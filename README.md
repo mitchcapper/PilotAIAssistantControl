@@ -1,15 +1,13 @@
-# PilotAiAssistControlWPF
+# PilotAiAssistControl
 
-A WPF user control that provides an AI chat assistant interface with support for multiple AI providers (GitHub Copilot, OpenAI, and custom providers). Includes both a standalone chat control and an expandable sidebar version.  It has integrated support for discovery of local existing GitHub Copilot tokens (ie from vscode) and also integrates a login flow for users that don't already have it present.
+A WPF (and beta WinUI3) user control that provides an AI chat assistant interface with support for multiple AI providers (GitHub Copilot, OpenAI, and custom providers). Includes both a standalone chat control and an expandable sidebar version.  It has integrated support for discovery of local existing GitHub Copilot tokens (ie from vscode) and also integrates a login flow for users that don't already have it present.
 
 You can optionally provide a "reference text/document" which can be a longer document the user is working on and allow the user to control how much(if any) of it to send along.
 
-<!-- TOC ignore:true -->
-
-## TOC
 <!-- TOC -->
 
-- [PilotAiAssistControlWPF](#pilotaiassistcontrolwpf)
+- [PilotAiAssistControl](#pilotaiassistcontrol)
+	- [TOC](#toc)
 	- [Installation](#installation)
 	- [Quick Start](#quick-start)
 		- [Add Namespace](#add-namespace)
@@ -31,6 +29,7 @@ You can optionally provide a "reference text/document" which can be a longer doc
 	- [Multiple Agents / System Prompts](#multiple-agents--system-prompts)
 		- [Example: Agent Switcher](#example-agent-switcher)
 	- [Developer / Technical Notes](#developer--technical-notes)
+	- [WinUI3 Beta Support](#winui3-beta-support)
 
 <!-- /TOC -->
 
@@ -384,3 +383,6 @@ private async void ExplainRegex_Click(object sender, RoutedEventArgs e) {
 
 ## Developer / Technical Notes
 The control uses Micrsoft's Microsoft.SemanticKernel AI backend to talk with different AI model providers.  Most providers can work with the standard OpenAI style protocol so can be added using the custom endpoint provider in our settings.  Additional providers that work through Microsoft.SemanticKernel can be added pretty easily, look at `AiModelProvider.cs` for examples.  `GithubCopilotProvider.cs` shows the most complex provider using a custom login flow and auto token discovery.
+
+## WinUI3 Beta Support
+There is also a WinUi3 beta support version of this control.  It largely works but is not as polished.  There is not a good Markdown engine with regex highlighting for one for WinUI3 but we are using the older community toolkit which does give us limited highlight support.  The WinUI3 version is not as well tested and may have other bugs.

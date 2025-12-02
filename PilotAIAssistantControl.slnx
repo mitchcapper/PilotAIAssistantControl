@@ -1,4 +1,10 @@
 <Solution>
-  <Project Path="PilotAIAssistantControl/PilotAIAssistantControl.csproj" />
+  <Project Path="PilotAIAssistantControl/PilotAIAssistantControl.shproj" Id="6cd62ff6-5bd0-41d0-a512-a6587e4846da" />
+  <Project Path="PilotAIAssistantControlWinUI/PilotAIAssistantControlWinUI.csproj" Id="eccee9d3-7e61-4fc6-8965-542c96b328a0" />
+  <Project Path="PilotAIAssistantControlWPF/PilotAIAssistantControlWPF.csproj" />
+  <Project Path="TestWinUIApp/TestWinUIApp.csproj" Id="983053bd-7644-40a1-88d2-ae951ada2470">
+    <Platform Project="x64" />
+    <Deploy />
+  </Project>
   <Project Path="TestWPFApp/TestWPFApp.csproj" />
 </Solution>

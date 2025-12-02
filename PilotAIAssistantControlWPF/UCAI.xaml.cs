@@ -1,72 +1,28 @@
-using PilotAIAssistantControl.MVVM;
-
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.ComponentModel;
+using System.Diagnostics;
+
+
+#if WPF
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.ComponentModel;
-using System.Diagnostics;
+#else
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Input;
+using Windows.System;
+#endif
 
 namespace PilotAIAssistantControl {
-
-
-	public class UCAIDataContext : BaseNotifyObject {
-		public bool ShowTokenConfig => SelectedPendingProvider?.CustomConfigControl == null;
-		public ObservableCollection<UCAI.ChatItem> Messages { get; set => Set(ref field, value); } = new();
-		public IAIModelProvider Provider { get; set => Set(ref field, value); }
-		/// <summary>
-		/// from combobox
-		/// </summary>
-		public IAIModelProvider SelectedPendingProvider {
-			get; set {
-
-				if (Set(ref field, value)) {
-					RaisePropertyChanged(nameof(ShowTokenConfig));
-				}
-
-			}
-		}
-
-
-		/// <summary>
-		/// The custom configuration control for the selected provider (if any).
-		/// </summary>
-
-
-		public AIOptions? Options {
-			get; set {
-				field = value;
-				MaxReferenceTextCharsToSend = value?.DefaultMaxReferenceTextCharsToSend ?? 5000;
-				RaisePropertyChanged(nameof(Options));  // always notify of changes if user explicitly sets incase they don't implement INotifyPropertyChanged themselves on something
-
-			}
-		}
-
-		public bool SendReferenceText { get; set => Set(ref field, value); } = true;
-		public int MaxReferenceTextCharsToSend { get; set => Set(ref field, value); }
-
-		public bool ActiveTabIsSettingsTab => ActiveTab?.Header?.ToString().Contains("Settings") == true;
-		public TabItem ActiveTab {
-			get; set {
-				var wasSettings = ActiveTabIsSettingsTab;
-				if (Set(ref field, value)){
-					if (wasSettings != ActiveTabIsSettingsTab){
-						RaisePropertyChanged( () => ActiveTabIsSettingsTab);
-						RaisePropertyChanged( ()=> SelectedPendingProvider);// important to make sure ui control is inited if it wasn't before
-					}
-				}
-
-			}
-		}
-
-	}
 
 	/// <summary>
 	/// Interaction logic for UCAI.xaml
@@ -85,53 +41,6 @@ namespace PilotAIAssistantControl {
 				provider.StatusMessage += Provider_StatusMessage;
 
 
-		}
-
-		// Chat message model with markdown support and colors
-		public class ChatItem {
-			public string Message { get; set; } = string.Empty;
-			public string Sender { get; set; } = string.Empty;
-			public Brush BackgroundColor { get; set; } = Brushes.White;
-			public Brush SenderColor { get; set; } = Brushes.Gray;
-			public HorizontalAlignment Alignment { get; set; } = HorizontalAlignment.Left;
-			public List<CodeBlock> CodeBlocks { get; set; } = new();
-			public bool HasCodeBlocks => CodeBlocks.Count > 0;
-
-
-
-			public static ChatItem CreateUserMessage(string message) {
-				return new ChatItem {
-					Message = message,
-					Sender = "You",
-					BackgroundColor = new SolidColorBrush(Color.FromRgb(0xE3, 0xF2, 0xFD)), // Light blue
-					SenderColor = new SolidColorBrush(Color.FromRgb(0x19, 0x76, 0xD2)),
-					Alignment = HorizontalAlignment.Right
-				};
-			}
-			private static Regex FindCodeBlockEnd = new(@"^```$", RegexOptions.Multiline);
-			public static ChatItem CreateAiMessage(string message) {
-				message = FindCodeBlockEnd.Replace(message, "\n```"); //bit hacky to make sure scrollbar doesn't make readability hard
-				return new ChatItem {
-					Message = message,
-					Sender = "AI Assistant",
-					BackgroundColor = new SolidColorBrush(Color.FromRgb(0xF5, 0xF5, 0xF5)), // Light gray
-					SenderColor = new SolidColorBrush(Color.FromRgb(0x38, 0x8E, 0x3C)),
-					Alignment = HorizontalAlignment.Left,
-					CodeBlocks = CodeBlock.ExtractCodeBlocks(message)
-				};
-			}
-
-			public static ChatItem CreateSystemMessage(string message, bool isError = false) {
-				return new ChatItem {
-					Message = message,
-					Sender = "System",
-					BackgroundColor = isError
-						? new SolidColorBrush(Color.FromRgb(0xFF, 0xEB, 0xEE)) // Light red
-						: new SolidColorBrush(Color.FromRgb(0xFF, 0xF8, 0xE1)), // Light amber
-					SenderColor = isError ? Brushes.DarkRed : Brushes.DarkOrange,
-					Alignment = HorizontalAlignment.Stretch
-				};
-			}
 		}
 
 		private readonly AiService _aiService = new AiService();
@@ -169,33 +78,73 @@ namespace PilotAIAssistantControl {
 
 		private async void AskAi_Click(object sender, RoutedEventArgs e) => await SendToAi();
 
+#if WPF
 		private void ChatInput_PreviewKeyDown(object sender, KeyEventArgs e) {
 			if (e.Key == Key.Up) {
+#else
+		private async void ChatInput_PreviewKeyDown(object sender, KeyRoutedEventArgs e) {
+			if (e.Key == VirtualKey.Up) {
+#endif
 				// Navigate to previous message if at first line
 				if (IsCaretOnFirstLine() && _messageHistory.Count > 0) {
 					e.Handled = true;
 					NavigateHistory(-1);
 				}
+#if WPF
 			} else if (e.Key == Key.Down) {
+#else
+			} else if (e.Key == VirtualKey.Down) {
+#endif
 				// Navigate to next message if at last line and we're in history
 				if (IsCaretOnLastLine() && _historyIndex < _messageHistory.Count) {
 					e.Handled = true;
 					NavigateHistory(1);
 				}
 			}
+#if !WPF
+			if (e.Key == VirtualKey.Enter) {
+				var shiftState = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift);
+				var ctrlState = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Control);
+				bool shiftPressed = shiftState.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
+				bool cntrlPressed = ctrlState.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
+				if (cntrlPressed || shiftPressed) {
+					e.Handled = true;
+					await SendToAi();
+				}
+					// Prevent focus change on Tab key
+					//e.Handled = true;
+				}
+#endif
 		}
-		private async void ChatInput_KeyDown(object sender, KeyEventArgs e) {
+#if WPF
+	private async void ChatInput_KeyDown(object sender, KeyEventArgs e) {
+#else
+		private async void ChatInput_KeyDown(object sender, KeyRoutedEventArgs e) {
+#endif
+#if WPF
 			if (e.Key == Key.Enter && !Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) {
+			//doens't work for winui needd to use other
+//#else
+//			// WinUI: Check shift key state manually
+//			var shiftState = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(VirtualKey.Shift);
+//			bool shiftPressed = shiftState.HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
+//			if (e.Key == VirtualKey.Enter && !shiftPressed) {
+//#endif
 				e.Handled = true;
 				await SendToAi();
 			}
+#endif
 		}
 
 		/// <summary>
 		/// Checks if the caret is on the first line of the TextBox.
 		/// </summary>
 		private bool IsCaretOnFirstLine() {
+#if WPF
 			var lineIndex = ChatInput.GetLineIndexFromCharacterIndex(ChatInput.CaretIndex);
+#else
+			var lineIndex = ChatInput.GetLineIndexFromCharacterIndex(ChatInput.SelectionStart);
+#endif
 			return lineIndex == 0;
 		}
 
@@ -203,8 +152,14 @@ namespace PilotAIAssistantControl {
 		/// Checks if the caret is on the last line of the TextBox.
 		/// </summary>
 		private bool IsCaretOnLastLine() {
+#if WPF
 			var lineIndex = ChatInput.GetLineIndexFromCharacterIndex(ChatInput.CaretIndex);
 			var lastLineIndex = ChatInput.LineCount - 1;
+#else
+			var lineIndex = ChatInput.GetLineIndexFromCharacterIndex(ChatInput.SelectionStart);
+			// WinUI TextBox doesn't have LineCount, calculate from text
+			var lastLineIndex = string.IsNullOrEmpty(ChatInput.Text) ? 0 : ChatInput.Text.Count(c => c == '\n');
+#endif
 			return lineIndex >= lastLineIndex;
 		}
 
@@ -241,7 +196,11 @@ namespace PilotAIAssistantControl {
 			}
 
 			// Move caret to end
+#if WPF
 			ChatInput.CaretIndex = ChatInput.Text.Length;
+#else
+			ChatInput.SelectionStart = ChatInput.Text.Length;
+#endif
 		}
 
 		private void GoToSettings_Click(object sender, RoutedEventArgs e) => ourTabControl.SelectedIndex = 1;
@@ -327,7 +286,11 @@ namespace PilotAIAssistantControl {
 		private void AddMessage(ChatItem message) {
 			Messages.Add(message);
 			// Scroll to bottom
+#if WPF
 			ChatScrollViewer.ScrollToEnd();
+#else
+			ChatScrollViewer.ChangeView(null, double.MaxValue, null);
+#endif
 		}
 
 		private async void CodeBlockAction_Click(object sender, RoutedEventArgs e) {
@@ -486,10 +449,18 @@ namespace PilotAIAssistantControl {
 			if (!String.IsNullOrWhiteSpace(provider))
 				ShowStatus($"✓ Connected to {provider} using {vm.Provider.UserData.ModelId}!", isError: false);
 			if (connected) {
+#if WPF
 				TxtCurrentModel.Foreground = new SolidColorBrush(Colors.Green);
+#else
+				TxtCurrentModel.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Green);
+#endif
 				TxtCurrentModel.Text = $"{provider}: {model}";
 			} else {
+#if WPF
 				TxtCurrentModel.Foreground = new SolidColorBrush(Colors.Gray);
+#else
+				TxtCurrentModel.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray);
+#endif
 				TxtCurrentModel.Text = "Not Connected";
 			}
 		}
@@ -584,6 +555,11 @@ namespace PilotAIAssistantControl {
 			if (isFirstLoad)
 				vm.PropertyChanged += vmPropChanged;
 			isFirstLoad = false;
+			var ind = ourTabControl.SelectedIndex;
+#if !WPF
+			if (ourTabControl.SelectedItem == null)
+				ourTabControl.SelectedItem = ourTabControl.TabItems[0];
+#endif
 		}
 
 		private void vmPropChanged(object? sender, PropertyChangedEventArgs e) {

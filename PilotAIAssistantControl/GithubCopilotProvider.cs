@@ -43,6 +43,7 @@ namespace PilotAIAssistantControl {
 			HTTPHeadersToAdd = CopilotTokenHelper.HeadersToAdd.ToList();
 			AvailableModels = new ObservableCollection<IAIModelProvider.IModel>();
 			CustomConfigControl = () => new UCConfigureCopilot();
+
 		}
 
 		public override void LoadData(JToken? data) {

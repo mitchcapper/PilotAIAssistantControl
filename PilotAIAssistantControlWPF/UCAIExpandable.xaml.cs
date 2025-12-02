@@ -1,8 +1,15 @@
 using System;
 using System.Threading.Tasks;
+
+#if WPF
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+#else
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Documents;
+#endif
 
 namespace PilotAIAssistantControl {
 	/// <summary>
@@ -113,7 +120,11 @@ namespace PilotAIAssistantControl {
 				nameof(IsExpanded),
 				typeof(bool),
 				typeof(UCAIExpandable),
+#if WPF
 				new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault));
+#else
+				new PropertyMetadata(false));
+#endif
 
 		public bool IsExpanded {
 			get => (bool)GetValue(IsExpandedProperty);
@@ -123,6 +134,7 @@ namespace PilotAIAssistantControl {
 		public static readonly DependencyProperty ExpandDirectionProperty =
 			DependencyProperty.Register(
 				nameof(ExpandDirection),
+#if WPF
 				typeof(ExpandDirection),
 				typeof(UCAIExpandable),
 				new PropertyMetadata(ExpandDirection.Right));
@@ -131,6 +143,16 @@ namespace PilotAIAssistantControl {
 			get => (ExpandDirection)GetValue(ExpandDirectionProperty);
 			set => SetValue(ExpandDirectionProperty, value);
 		}
+#else
+				typeof(FauxExpandDirection),
+				typeof(UCAIExpandable),
+				new PropertyMetadata(FauxExpandDirection.Right));
+
+		public FauxExpandDirection ExpandDirection {
+			get => (FauxExpandDirection)GetValue(ExpandDirectionProperty);
+			set => SetValue(ExpandDirectionProperty, value);
+		}
+#endif
 
 		private static object CreateDefaultHeader() {
 			var textBlock = new TextBlock {
@@ -139,9 +161,15 @@ namespace PilotAIAssistantControl {
 				VerticalAlignment = VerticalAlignment.Stretch,
 				TextAlignment = TextAlignment.Center
 			};
+#if WPF
 			textBlock.Inlines.Add("💬");
 			textBlock.Inlines.Add(new LineBreak());
 			textBlock.Inlines.Add("AI");
+#else
+			textBlock.Inlines.Add(new Run { Text = "💬" });
+			textBlock.Inlines.Add(new Run { Text = "\n" });
+			textBlock.Inlines.Add(new Run { Text = "AI" });
+#endif
 			return textBlock;
 		}
 
@@ -149,7 +177,11 @@ namespace PilotAIAssistantControl {
 
 		#region Public Properties
 
+#if WPF
 		public Expander ExpanderControl => InternalExpander;
+#else
+		public FauxExpander ExpanderControl => InternalExpander;
+#endif
 
 		public UCAI AiControl => InternalAiControl;
 
@@ -179,6 +211,7 @@ namespace PilotAIAssistantControl {
 
 		#region Expand/Collapse Event Handlers
 
+#if WPF
 		private void InternalExpander_Expanded(object sender, RoutedEventArgs e) {
 			ApplyExpandedState();
 			InternalAiControl.TryAutoConnectOnExpand();
@@ -187,6 +220,17 @@ namespace PilotAIAssistantControl {
 		private void InternalExpander_Collapsed(object sender, RoutedEventArgs e) {
 			ApplyCollapsedState();
 		}
+#else
+		private void InternalExpander_Expanded(object? sender, FauxExpanderExpandingEventArgs e) {
+			ApplyExpandedState();
+			InternalAiControl.TryAutoConnectOnExpand();
+		}
+
+		private void InternalExpander_Collapsed(object? sender, FauxExpanderCollapsedEventArgs e) {
+			ApplyCollapsedState();
+		}
+#endif
+
 
 		#endregion
 

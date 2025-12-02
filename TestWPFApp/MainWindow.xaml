@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:pia="clr-namespace:PilotAIAssistantControl;assembly=PilotAIAssistantControl" 
+        xmlns:pia="clr-namespace:PilotAIAssistantControl;assembly=PilotAIAssistantControlWPF" 
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
 	<Grid>
@@ -32,7 +32,7 @@
 
 		</Grid>
 		<GridSplitter x:Name="aiSplitter" Grid.Column="1"
-		              Visibility="{Binding AiControl.Visibility, Mode=OneWay, ElementName=ucAiExpandable}"
+		              Visibility="{Binding AiControl.Visibility, Mode=OneWay, ElementName=ucAi}"
 		              IsTabStop="False"
 		              HorizontalAlignment="Stretch"
 		              VerticalAlignment="Stretch"

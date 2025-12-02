@@ -3,8 +3,15 @@ using System.Collections.ObjectModel;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
+#if WPF
 using System.Windows;
 using System.Windows.Controls;
+#else
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Windows.ApplicationModel.DataTransfer;
+#endif
 
 namespace PilotAIAssistantControl {
 	/// <summary>
@@ -21,7 +28,7 @@ namespace PilotAIAssistantControl {
 		/// </summary>
 		public GithubCopilotProvider? Provider => DataContext as GithubCopilotProvider;
 
-		
+
 
 		/// <summary>
 		/// Gets the cached API token from a successful token exchange.
@@ -45,14 +52,22 @@ namespace PilotAIAssistantControl {
 			TxtTokenLocations.Text = sb.ToString();
 		}
 
-		private void WhereToken_Collapsed(object sender, RoutedEventArgs e) => e.Handled = true;
+	#if WPF
+	private void WhereToken_Collapsed(object sender, RoutedEventArgs e) {
+		e.Handled = true;
+	}
+#else
+	private void WhereToken_Collapsed(Expander sender, ExpanderCollapsedEventArgs e) {
+		// WinUI event handler - no e.Handled property
+	}
+#endif
 
-	
 
 
-		
 
-		
+
+
+
 
 		#region Sign-In Flow
 
@@ -68,7 +83,11 @@ namespace PilotAIAssistantControl {
 			try {
 				var result = await CopilotTokenHelper.AcquireTokenViaDeviceFlowAsync(
 					progressCallback: (userCode, verificationUri) => {
+#if WPF
 						Dispatcher.Invoke(() => {
+#else
+						DispatcherQueue.TryEnqueue(() => {
+#endif
 							TxtDeviceCode.Text = userCode;
 							TxtDeviceUrl.Text = verificationUri;
 						});
@@ -104,7 +123,13 @@ namespace PilotAIAssistantControl {
 
 		private void CopyDeviceCode_Click(object sender, RoutedEventArgs e) {
 			try {
+#if WPF
 				Clipboard.SetText(TxtDeviceCode.Text);
+#else
+				var dataPackage = new DataPackage();
+				dataPackage.SetText(TxtDeviceCode.Text);
+				Clipboard.SetContent(dataPackage);
+#endif
 				OnStatusMessage("Code copied to clipboard!", isError: false);
 			} catch {
 				// Clipboard access can fail
@@ -124,7 +149,7 @@ namespace PilotAIAssistantControl {
 			if (! IsLoaded)
 				return;
 			if (ChkAutoDiscover.IsChecked == true)
-				Provider?.ProviderSelected(); // autodiscover loadl models 
+				Provider?.ProviderSelected(); // autodiscover loadl models
 		}
 	}
 }

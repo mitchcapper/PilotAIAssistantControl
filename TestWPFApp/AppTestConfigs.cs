@@ -1,3 +1,4 @@
+
 using PilotAIAssistantControl;
 using System;
 using System.Collections.Generic;
@@ -5,6 +6,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+#if !WPF
+using TestWinUIApp;
+using Microsoft.UI.Xaml.Controls;
+#else
+using System.Windows.Controls;
+#endif
 namespace TestWPFApp {
 	public interface OurEngineOptions {
 		string Name { get; }
@@ -44,14 +51,25 @@ namespace TestWPFApp {
 
 		public override string HintForUserInput => "Ask about a pattern or matching...";
 		public override string ReferenceTextDisplayName => "Target Text";
-		public override string FormatUserQuestion(string userQuestion) => $"Current pattern:\n```regex\n{MainWindow.Instance.txtRegex.Text}\n```\n\nMy question: {userQuestion}";
+		internal TextBox RegexBox =>
+#if WPF
+			MainWindow.Instance.txtRegex;
+#else
+			MainWindow.Instance.txtRegexPublic;
+			#endif
+		public override string FormatUserQuestion(string userQuestion) => $"Current pattern:\n```regex\n{RegexBox.Text}\n```\n\nMy question: {userQuestion}";
 		 
-		public override string GetCurrentReferenceText() => MainWindow.Instance.txtTest.Text;
+		public override string GetCurrentReferenceText() =>
+#if WPF
+			MainWindow.Instance.txtTest.Text;
+			#else
+			MainWindow.Instance.txtTestPublic.Text;
+			#endif
 		public override IEnumerable<ICodeblockAction> CodeblockActions => [ GenericCodeblockAction.ClipboardAction,
 				new GenericCodeblockAction("📝 Use as Pattern", async ( block ) =>
 				{
 
-					MainWindow.Instance.txtRegex.Text = block.Code;
+					RegexBox.Text = block.Code;
 					return true;
 				} )
 				{

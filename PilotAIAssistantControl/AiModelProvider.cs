@@ -4,7 +4,11 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Threading.Tasks;
+#if WPF
 using System.Windows.Controls;
+#else
+using Microsoft.UI.Xaml.Controls;
+#endif
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
 
@@ -54,7 +58,7 @@ namespace PilotAIAssistantControl {
 				ModelHint="Enter model name (e.g., gpt-4o, gpt-4-turbo, gpt-3.5-turbo)",
 				DefaultModelId="gpt-4o",
 			},
-			new GenericAIModelProvider() {Id="ollama",Name="Local / Custom Endpoint(Ollama)", Description="Connects to a local Ollama instance",
+			new GenericAIModelProvider() {Id="ollama",Name="Local / Custom Endpoint(Ollama)", Description="Connects to a custom OpenAI endpoint instance",
 				TokenHint="API Key (optional)",
 				TokenHelp="Ollama generally ignores the API key so it isn't needed",
 				DefaultModelId="llama3",

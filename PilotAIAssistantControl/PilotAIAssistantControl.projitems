@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>6cd62ff6-5bd0-41d0-a512-a6587e4846da</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>PilotAIAssistantControl</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)AiModelProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AIOptions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AIService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AIUserConfig.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)BaseBoolNullConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ChatItem.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CodeBlock.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CopilotTokenHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)GithubCopilotProvider.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MarkdownViewer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MVVMSuperLite.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UCAIDataContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)WinUITextBoxExtensions.cs" />
+  </ItemGroup>
+</Project>

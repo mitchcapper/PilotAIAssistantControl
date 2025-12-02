@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>PilotAIAssistantControlWinUI</RootNamespace>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+    <UseWinUI>true</UseWinUI>
+		<LangVersion>preview</LangVersion>
+		<Nullable>enable</Nullable>
+    <WinUISDKReferences>false</WinUISDKReferences>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.WinUI.UI.Controls.Markdown" Version="7.1.2" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7175" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.251106002" />
+		<PackageReference Include="Microsoft.SemanticKernel" Version="1.67.1" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+	<Import Project="..\PilotAIAssistantControl\PilotAIAssistantControl.projitems" Label="Shared" />
+
+	<!-- Link code-behind files from WPF project -->
+	<ItemGroup>
+		<Compile Include="..\PilotAIAssistantControlWPF\UCAI.xaml.cs" Link="UCAI.xaml.cs">
+			<DependentUpon>UCAI.xaml</DependentUpon>
+		</Compile>
+		<Compile Include="..\PilotAIAssistantControlWPF\UCAIExpandable.xaml.cs" Link="UCAIExpandable.xaml.cs">
+			<DependentUpon>UCAIExpandable.xaml</DependentUpon>
+		</Compile>
+		<Compile Include="..\PilotAIAssistantControlWPF\UCConfigureCopilot.xaml.cs" Link="UCConfigureCopilot.xaml.cs">
+			<DependentUpon>UCConfigureCopilot.xaml</DependentUpon>
+		</Compile>
+	</ItemGroup>
+
+</Project>

@@ -1,0 +1,295 @@
+<UserControl x:Class="PilotAIAssistantControl.UCAI"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:local="clr-namespace:PilotAIAssistantControl"
+             xmlns:mdxaml="clr-namespace:MdXaml;assembly=MdXaml"
+			 Loaded="UserControl_Loaded"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="400">
+    <UserControl.Resources>
+        <!-- Local styles for the AI panel using Fluent theme resources -->
+        <Style x:Key="SectionHeader" TargetType="TextBlock" BasedOn="{StaticResource SubtitleTextBlockStyle}">
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        <Style x:Key="FieldLabel" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+            <Setter Property="Margin" Value="0,8,0,4"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+        </Style>
+        <Style x:Key="HintText" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+            <Setter Property="FontStyle" Value="Italic"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+        </Style>
+        <Style x:Key="StatusText" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+        <!-- Chat bubbles need specific colors for context -->
+        <Style x:Key="ChatBubbleUser" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Margin" Value="20,4,4,4"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+        </Style>
+        <Style x:Key="ChatBubbleAI" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="Margin" Value="4,4,20,4"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+        <!-- Section card style -->
+        <Style x:Key="SectionCard" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource CardBackgroundFillColorDefaultBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CardStrokeColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}"/>
+            <Setter Property="Padding" Value="12"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid x:Name="gridMain" d:DataContext="{d:DesignInstance Type=local:UCAIDataContext}">
+        <TabControl x:Name="ourTabControl" SelectedItem="{Binding ActiveTab,Mode=OneWayToSource}">
+
+            <!-- TAB 1: AI Chat Interface -->
+            <TabItem Header="💬 Chat">
+                <Grid Margin="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Status Bar -->
+                    <Border Grid.Row="0" Style="{StaticResource SectionCard}">
+                        <StackPanel>
+                            <TextBlock Name="TxtCurrentModel" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontWeight="Bold"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="🗑 Clear" Click="ClearChat_Click"
+                                        ToolTip="Clear conversation history"/>
+                                <Button Content="⚙ Settings" Click="GoToSettings_Click"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Chat Messages Area with Markdown Support -->
+                    <ScrollViewer Grid.Row="1" Name="ChatScrollViewer" VerticalScrollBarVisibility="Auto"
+                                  Background="{DynamicResource LayerFillColorDefaultBrush}">
+                        <ItemsControl Name="ChatMessages" ItemsSource="{Binding Messages}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Background="{Binding BackgroundColor}"
+                                            HorizontalAlignment="{Binding Alignment}"
+                                            MaxWidth="500">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Sender}" FontWeight="SemiBold"
+                                                       Style="{StaticResource CaptionTextBlockStyle}"
+                                                       Foreground="{Binding SenderColor}"/>
+                                            <mdxaml:MarkdownScrollViewer Markdown="{Binding Message}"
+                                                                          VerticalScrollBarVisibility="Disabled"
+                                                                          Background="Transparent"
+                                                                          MarkdownStyleName="Sasabune"/>
+                                            <ItemsControl ItemsSource="{Binding CodeBlocks}"
+                                                          Visibility="{Binding HasCodeBlocks, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <ItemsControl ItemsSource="{Binding Actions}" >
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Left"/>
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Button Click="CodeBlockAction_Click"
+                                                                    HorizontalAlignment="Left"
+                                                                    ToolTip="{Binding Action.Tooltip}">
+                                                                        <StackPanel Orientation="Horizontal">
+                                                                            <TextBlock Text="{Binding Action.DisplayName}"/>
+                                                                            <TextBlock Text="{Binding Block.Language}" Margin="4,0,0,0"
+                                                                               FontStyle="Italic"
+                                                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                                        </StackPanel>
+                                                                    </Button>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- Chat Input Area -->
+                    <Border Grid.Row="2" Style="{StaticResource SectionCard}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid>
+                                <TextBox Name="ChatInput" KeyDown="ChatInput_KeyDown" PreviewKeyDown="ChatInput_PreviewKeyDown"
+                                         BorderThickness="0" Background="Transparent"
+                                         VerticalAlignment="Center" AcceptsReturn="True"
+                                         ToolTip="{Binding Options.HintForUserInput}"/>
+                                <TextBlock Text="{Binding Options.HintForUserInput}"
+                                           IsHitTestVisible="False"
+                                           VerticalAlignment="Center"
+                                           Margin="5,0,0,0"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Text, ElementName=ChatInput}" Value="">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                            <Button Name="BtnSend" Content="Send" Click="AskAi_Click" Grid.Column="1"
+                                    Style="{StaticResource OurAccentButtonStyle}"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Target Text Options -->
+                    <Border Grid.Row="3" Style="{StaticResource SectionCard}" Visibility="{Binding Options.IsReferenceTextEnabled, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">
+                        <StackPanel Orientation="Horizontal">
+                            <CheckBox Name="ChkSendTargetText" Content="Send Target Text up to" VerticalAlignment="Center"
+                                      IsChecked="{Binding SendReferenceText, Mode=TwoWay}" />
+                            <TextBox Name="TxtTargetTextLength" Text="{Binding MaxReferenceTextCharsToSend, Mode=TwoWay}" Width="55"
+                                     Visibility="{Binding Options.AllowUserToSetMaxReferenceTextCharsToSend, Converter={StaticResource boolNullVisibilityCollapsedConverter}}"
+                                     IsEnabled="{Binding IsChecked, ElementName=ChkSendTargetText}"/>
+                            <TextBlock Text="chars to AI" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- TAB 2: AI Configuration Settings -->
+            <TabItem Header="⚙ Settings">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" >
+                    <StackPanel Margin="16" MaxWidth="450">
+
+                        <!-- Provider Selection -->
+                        <TextBlock Text="AI Provider" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource SectionCard}">
+                            <StackPanel>
+                                <TextBlock Text="Select Provider:" Style="{StaticResource FieldLabel}"/>
+                                <ComboBox Name="ComboProvider" ItemsSource="{Binding Options.Providers}" SelectedItem="{Binding SelectedPendingProvider, Mode=TwoWay}" />
+
+                                <TextBlock Name="TxtProviderHint" Style="{StaticResource HintText}"
+                                           Text="{Binding SelectedPendingProvider.Description}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Authentication Section -->
+                        <TextBlock Text="Authentication" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource SectionCard}">
+                            <StackPanel>
+                                <!-- Provider-specific config control (dynamic) -->
+								<ContentControl Content="{Binding SelectedPendingProvider.ControlInstance}"
+                                                Visibility="{Binding SelectedPendingProvider.ControlInstance, Converter={StaticResource boolNullVisibilityCollapsedConverter}}"/>
+
+                                <!-- Default token inputs when no custom config control is provided -->
+								<StackPanel Visibility="{Binding SelectedPendingProvider.ShowAPIKeyField, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">
+                                    <TextBlock Name="LblApiKey" Text="{Binding SelectedPendingProvider.TokenHint}" Style="{StaticResource FieldLabel}"/>
+                                    <PasswordBox Name="TxtApiKey" PasswordChanged="TxtApiKey_PasswordChanged"/>
+                                    <TextBlock Name="TxtTokenHelp" Style="{StaticResource HintText}" Text="{Binding SelectedPendingProvider.TokenHelp}"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Model Selection -->
+                        <TextBlock Text="Model Selection" Style="{StaticResource SectionHeader}"/>
+                        <Border Style="{StaticResource SectionCard}">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Model:" Style="{StaticResource FieldLabel}" Grid.Column="0"/>
+                                        <Button Name="BtnRefreshModels" Grid.Column="1" Content="↻ Refresh" Visibility="{Binding SelectedPendingProvider.AvailableModels, Converter={StaticResource boolNullVisibilityCollapsedConverter}}"
+                                            Click="RefreshModels_Click"
+                                            ToolTip="Fetch available models from the API"/>
+                                </Grid>
+
+                                <!-- Model Dropdown (when provider has AvailableModels) -->
+                                <ComboBox Name="ComboModel"
+                                          ItemsSource="{Binding SelectedPendingProvider.AvailableModels}"
+                                          SelectedItem="{Binding SelectedPendingProvider.SelectedModel, Mode=TwoWay}"
+                                          Visibility="{Binding SelectedPendingProvider.AvailableModels, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding DisplayName}" ToolTip="{Binding Tooltip}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+
+                                <!-- Model Text Input (when provider doesn't have AvailableModels) -->
+                                <TextBox Name="TxtModelId" Text="{Binding SelectedPendingProvider.UserData.ModelId, Mode=TwoWay}" Visibility="{Binding SelectedPendingProvider.AvailableModels, Converter={StaticResource boolNullVisibilityCollapsedConverter},ConverterParameter=1}" />
+
+                                <TextBlock Name="TxtModelHint" Style="{StaticResource HintText}"
+                                           Text="{Binding SelectedPendingProvider.ModelHint}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Endpoint (for local providers) -->
+                        <Border Name="EndpointSection" Style="{StaticResource SectionCard}" Visibility="{Binding SelectedPendingProvider.AllowEndpointCustomization, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">
+                            <StackPanel>
+                                <TextBlock Text="Custom Endpoint" Style="{StaticResource SectionHeader}"/>
+                                <TextBlock Text="Endpoint URL:" Style="{StaticResource FieldLabel}"/>
+                                <TextBox Name="TxtEndpoint" Text="{Binding SelectedPendingProvider.UserData.Endpoint, Mode=TwoWay}"/>
+                                <TextBlock Style="{StaticResource HintText}"
+                                           Text="{Binding SelectedPendingProvider.EndpointHint}"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Action Buttons -->
+                        <StackPanel>
+                            <Button Name="BtnTestConnection" Content="🔗 Test Connection"
+                                    Click="TestConnection_Click" HorizontalAlignment="Stretch"/>
+                            <Button Name="BtnSaveConnect" Content="💾 Connect"
+                                    Click="SaveSettings_Click" Style="{StaticResource OurAccentButtonStyle}"
+                                    HorizontalAlignment="Stretch"/>
+                        </StackPanel>
+
+                        <!-- Status -->
+                        <Border Name="StatusBorder"
+                                Background="{DynamicResource InfoBarSuccessSeverityBackgroundBrush}"
+                                Style="{StaticResource SectionCard}" Visibility="Collapsed">
+                            <TextBlock Name="LblStatus" Style="{StaticResource StatusText}"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        </Border>
+
+                        <!-- Error Status -->
+                        <Border Name="ErrorBorder"
+                                Background="{DynamicResource InfoBarErrorSeverityBackgroundBrush}"
+                                Style="{StaticResource SectionCard}" Visibility="Collapsed">
+                            <TextBlock Name="LblError" Style="{StaticResource StatusText}"
+                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+        </TabControl>
+
+    </Grid>
+</UserControl>
