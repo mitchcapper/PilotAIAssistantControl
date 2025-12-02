@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
@@ -14,6 +15,7 @@ namespace PilotAIAssistantControl {
 		public void Configure(AIOptions options) => InternalAiControl.Configure(options);
 		public AIUserConfig ExportData() => InternalAiControl.ExportData();
 		public void ImportData(AIUserConfig? data) => InternalAiControl.ImportData(data);
+		public Task SendMessage(string message) => InternalAiControl.SendMessage(message);
 
 		#region Dependency Properties
 

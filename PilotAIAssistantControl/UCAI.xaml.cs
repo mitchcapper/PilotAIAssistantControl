@@ -257,6 +257,14 @@ namespace PilotAIAssistantControl {
 			AddMessage(ChatItem.CreateSystemMessage("Conversation cleared. Start a new chat!"));
 		}
 
+		/// <summary>
+		/// Sends a message to the AI on behalf of the user.
+		/// </summary>
+		public async Task SendMessage(string message) {
+			ChatInput.Text = message;
+			await SendToAi();
+		}
+
 		private async Task SendToAi() {
 			if (Options == null) {
 				AddMessage(ChatItem.CreateSystemMessage("Not Initialized Backend Code Error", isError: true));
