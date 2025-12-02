@@ -54,7 +54,7 @@ namespace PilotAIAssistantControl {
 				ModelHint="Enter model name (e.g., gpt-4o, gpt-4-turbo, gpt-3.5-turbo)",
 				DefaultModelId="gpt-4o",
 			},
-			new GenericAIModelProvider() {Id="ollama",Name="Local (Ollama)", Description="Connects to a local Ollama instance",
+			new GenericAIModelProvider() {Id="ollama",Name="Local / Custom Endpoint(Ollama)", Description="Connects to a local Ollama instance",
 				TokenHint="API Key (optional)",
 				TokenHelp="Ollama generally ignores the API key so it isn't needed",
 				DefaultModelId="llama3",

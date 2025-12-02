@@ -57,7 +57,7 @@ namespace PilotAIAssistantControl {
 		/// If we should ask user how many chars to send, with this disabled we only ask if they want to send reference text or not (assuming reference text is enabled)
 		/// </summary>
 		public virtual bool AllowUserToSetMaxReferenceTextCharsToSend => true;
-		public virtual IEnumerable<CodeblockAction> CodeblockActions => [];
+		public virtual IEnumerable<ICodeblockAction> CodeblockActions => [];
 		/// <summary>
 		/// Format the user question for the prompt.
 		/// </summary>

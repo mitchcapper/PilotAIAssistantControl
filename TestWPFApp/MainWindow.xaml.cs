@@ -26,23 +26,38 @@ namespace TestWPFApp {
 		}
 
 		private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e) {
-			var data = ucAiExpandable.AiControl.ExportData();
+			var data = ucAi.AiControl.ExportData();
 
 			File.WriteAllText(json_config, JsonConvert.SerializeObject(data));
 		}
 		private static string json_config = @"test_exported_data.json";
+		private OurOptions GeneratorAgentOpts;
+		private SimpleExplainerOptions QueryAgentOpts;
 
 		private void MainWindow_Loaded(object sender, RoutedEventArgs e) {
-			var opts = new OurOptions();
-			ucAiExpandable.AiControl.Configure(opts);
+			this.GeneratorAgentOpts = new OurOptions();
+			this.QueryAgentOpts = new SimpleExplainerOptions();
+			ucAi.AiControl.Configure(GeneratorAgentOpts);
 			if (File.Exists(json_config)) {
 				var data = JsonConvert.DeserializeObject<AIUserConfig>(File.ReadAllText(json_config));
 				if (data != null)
-					ucAiExpandable.AiControl.ImportData(data);
+					ucAi.AiControl.ImportData(data);
 			}
 
 			txtTest.Text = File.ReadAllText(@"C:\temp\scratch\gnu_short.html");
-			ucAiExpandable.ExpanderControl.IsExpanded = true;
+			ucAi.ExpanderControl.IsExpanded = true;
+		}
+
+		private async void agentCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+			if (! IsLoaded)
+				return;
+			AIOptions newAgent = agentCombo.SelectedItem.ToString().Contains("Explain") ? QueryAgentOpts : GeneratorAgentOpts;
+			ucAi.Configure(newAgent);
+		}
+
+		private async void ExplainRegex_Click(object sender, RoutedEventArgs e) {
+			agentCombo.SelectedIndex = 1; // Switch to Explain agent
+			await ucAi.SendMessage($"`{txtRegex.Text}`");
 		}
 	}
 }

@@ -2,11 +2,11 @@
 
 A WPF user control that provides an AI chat assistant interface with support for multiple AI providers (GitHub Copilot, OpenAI, and custom providers). Includes both a standalone chat control and an expandable sidebar version.  It has integrated support for discovery of local existing GitHub Copilot tokens (ie from vscode) and also integrates a login flow for users that don't already have it present.
 
-You can optionally provide a "reference document" which can be a longer document the user is working on and allow the user to control how much(if any) of it to send along.
+You can optionally provide a "reference text/document" which can be a longer document the user is working on and allow the user to control how much(if any) of it to send along.
 
+<!-- TOC ignore:true -->
 
 ## TOC
-
 <!-- TOC -->
 
 - [PilotAiAssistControlWPF](#pilotaiassistcontrolwpf)
@@ -16,6 +16,7 @@ You can optionally provide a "reference document" which can be a longer document
 		- [Create Your Options Class](#create-your-options-class)
 		- [Embed the Control](#embed-the-control)
 		- [Initialize in Code-Behind](#initialize-in-code-behind)
+	- [Requirements](#requirements)
 	- [Saving and Restoring User Settings](#saving-and-restoring-user-settings)
 	- [AIOptions Configuration](#aioptions-configuration)
 		- [Reference Text Replace Actions](#reference-text-replace-actions)
@@ -27,7 +28,9 @@ You can optionally provide a "reference document" which can be a longer document
 		- [Implementing the CodeblockAction Interface](#implementing-the-codeblockaction-interface)
 		- [Example: Full Options Class](#example-full-options-class)
 	- [UCAIExpandable Properties](#ucaiexpandable-properties)
-	- [Requirements](#requirements)
+	- [Multiple Agents / System Prompts](#multiple-agents--system-prompts)
+		- [Example: Agent Switcher](#example-agent-switcher)
+	- [Developer / Technical Notes](#developer--technical-notes)
 
 <!-- /TOC -->
 
@@ -40,13 +43,13 @@ Install-Package PilotAiAssistControlWPF
 
 ## Quick Start
 
-### 1. Add Namespace
+### Add Namespace
 
 ```xml
 xmlns:pia="clr-namespace:PilotAIAssistantControl;assembly=PilotAIAssistantControl"
 ```
 
-### 2. Create Your Options Class
+### Create Your Options Class
 
 Create a class inheriting from `AIOptions` to configure the AI behavior:
 
@@ -59,7 +62,7 @@ public class RegexAIOptions : AIOptions {
 }
 ```
 
-### 3. Embed the Control
+### Embed the Control
 
 **Option A: Expandable Panel (Recommended for sidebars)**
 
@@ -89,7 +92,7 @@ public class RegexAIOptions : AIOptions {
 <pia:UCAI x:Name="ucAi" Width="400"/>
 ```
 
-### 4. Initialize in Code-Behind
+### Initialize in Code-Behind
 
 **Important:** You must call `Configure()` followed by `ImportData()` for the control to fully initialize. Always call `ImportData()` even if you have no data to restore (pass `null`).
 
@@ -106,6 +109,12 @@ private void Window_Loaded(object sender, RoutedEventArgs e) {
     ucAi.ImportData(null);
 }
 ```
+
+## Requirements
+
+- .NET 6.0+ or .NET Framework 4.7.2+
+- WPF application
+- Newtonsoft.Json (for settings serialization)
 
 ## Saving and Restoring User Settings
 
@@ -139,22 +148,24 @@ The `AIOptions` class controls how the AI chat behaves. Override properties and 
 
 | Member | Description |
 |--------|-------------|
-| `GetSystemPrompt()` | **Required.** Returns the system prompt that defines the AI's behavior and context. |
-| `Providers` | Array of available AI providers. Defaults to built-in providers (GitHub Copilot, OpenAI, etc.). |
-| `ReplaceAction` | Controls how reference text updates are handled in chat history. Default: `ChangeOldToPlaceholder`. |
-| `GetCurrentReferenceText()` | Returns the current reference text to send with queries (e.g., document content). |
-| `ReferenceTextHeader` | Header shown to the AI for reference text blocks. Default: `"Reference Text"`. |
-| `ReferenceTextDisplayName` | User-facing name for reference text. Default: `"Reference Text"`. |
-| `DefaultMaxReferenceTextCharsToSend` | Max characters of reference text to include. Default: `5000`. |
-| `AllowUserToSetMaxReferenceTextCharsToSend` | Show UI to let user adjust max chars. Default: `true`. |
-| `HintForUserInput` | Placeholder text for the chat input box. Default: `"Ask your question here..."`. |
-| `FormatUserQuestion(string)` | Transform user questions before sending to AI. |
-| `CodeblockActions` | Custom actions shown on code blocks in AI responses. |
-| `HandleDebugMessage(string)` | Receive debug messages from the AI service. |
+| `string GetSystemPrompt()` | **Required.** Returns the system prompt that defines the AI's behavior and context. |
+| `IAIModelProvider[] Providers` | Array of available AI providers. Defaults to built-in providers (GitHub Copilot, OpenAI, etc.). |
+| `REFERENCE_TEXT_REPLACE_ACTION ReplaceAction` | Controls how reference text updates are handled in chat history. Default: `ChangeOldToPlaceholder`. |
+| `stirng GetCurrentReferenceText()` | Returns the current reference text to send with queries (e.g., document content). |
+| `string ReferenceTextHeader` | Header shown to the AI for reference text blocks. Default: `"Reference Text"`. |
+| `string ReferenceTextDisplayName` | User-facing name for reference text. Default: `"Reference Text"`. |
+| `int DefaultMaxReferenceTextCharsToSend` | Max characters of reference text to include. Default: `5000`. |
+| `bool AllowUserToSetMaxReferenceTextCharsToSend` | Show UI to let user adjust max chars. Default: `true`. |
+| `String HintForUserInput` | Placeholder text for the chat input box. Default: `"Ask your question here..."`. |
+| `String FormatUserQuestion(string)` | Transform user questions before sending to AI. |
+| `IEnumerable<CodeblockAction> CodeblockActions` | Custom actions shown on code blocks in AI responses. |
+| `void HandleDebugMessage(string)` | Receive debug messages from the AI service. |
+
+It may be non-obvious but if you want to disable the "reference text" functionality you should set `ReplaceAction = ReferenceTextDisabled` this will disable it completely and hide those UI Components.  See below for more details on options.
 
 ### Reference Text Replace Actions
 
-When using reference text that changes during the conversation:
+When using reference text that changes during the conversation we likely don't want to include all the past versions to minimize the context window.  The enum value here controls how we handle that while trying to minimize any confusion on the ai model's side as to what happened in the conversation.
 
 | Action | Behavior |
 |--------|----------|
@@ -170,11 +181,11 @@ When the AI responds with code blocks (markdown fenced code), you can add action
 
 ### Built-in Actions
 
-- `GenericCodeblockAction.ClipboardAction` - A pre-built "📋 Copy" action that copies the code to clipboard.
+- `GenericCodeblockAction.ClipboardAction` - A pre-built "📋 Copy" sample action that copies the code to clipboard.
 
 ### Creating Custom Actions
 
-Use `GenericCodeblockAction` to create custom actions:
+YOu can create your own custom actions either implementing the ICodeblockAction interface directly or using the `GenericCodeblockAction` helper base class to create custom actions:
 
 ```csharp
 new GenericCodeblockAction("📝 Use as Pattern", async (block) => {
@@ -199,7 +210,7 @@ The `block` parameter passed to your action implements `ICodeBlock`:
 
 ### Conditional Visibility
 
-To show actions only for specific code block types, set `IsVisibleDel`:
+To show actions only for specific code block types, set `IsVisibleDel`.  It will get the entire ICodeBlock object to determine if it wants to offer its action:
 
 ```csharp
 new GenericCodeblockAction("📝 Use as Pattern", async (block) => {
@@ -217,7 +228,7 @@ new GenericCodeblockAction("📝 Use as Pattern", async (block) => {
 For more control, implement the `CodeblockAction` interface directly:
 
 ```csharp
-public interface CodeblockAction {
+public interface ICodeblockAction {
     Task<bool> DoAction(ICodeBlock block);  // Execute the action
     string DisplayName { get; }              // Button text (e.g., "📋 Copy")
     string Tooltip => DisplayName;           // Hover tooltip
@@ -283,8 +294,93 @@ public class RegexAIOptions : AIOptions {
 | `AiControl` | `UCAI` | Access to the inner AI chat control. |
 | `ExpanderControl` | `Expander` | Access to the inner Expander control. |
 
-## Requirements
+## Multiple Agents / System Prompts
 
-- .NET 6.0+ or .NET Framework 4.7.2+
-- WPF application
-- Newtonsoft.Json (for settings serialization)
+The control doesn't have built-in UI for switching between multiple AI "agents" (different system prompts), but you can easily implement this yourself by calling `Configure()` with different `AIOptions` instances. If the "Providers" property of the AIOptions is the same between AiOption instances then the user's provider settings are preserved across agent switches.
+
+### Example: Agent Switcher
+
+Define multiple agents with different system prompts:
+
+```csharp
+// Agent 1: Generates regex patterns based on user requirements
+public class RegexGeneratorAgent : AIOptions {
+    public override string GetSystemPrompt() =>
+        "You are a C# Regex expert. Help users create regex patterns. " +
+        "Provide patterns in ```regex code blocks.";
+
+    public override string HintForUserInput => "Describe what you want to match...";
+    public override string ReferenceTextHeader => "Users current target text";
+    public override string GetCurrentReferenceText() => MainWindow.Instance.txtTest.Text;
+
+    public override string FormatUserQuestion(string userQuestion) =>
+        $"Current pattern:\n```regex\n{MainWindow.Instance.txtRegex.Text}\n```\n\n{userQuestion}";
+}
+
+// Agent 2: Explains existing regex patterns
+public class RegexExplainerAgent : AIOptions {
+    public override string GetSystemPrompt() =>
+        "You are a regex expert. Explain how regex patterns work. " +
+        "Be concise - a few sentences for simple patterns, a paragraph for complex ones. " +
+        "Don't give examples unless asked.";
+
+    public override string HintForUserInput => "Provide a regex pattern to explain...";
+
+    public override string FormatUserQuestion(string userQuestion) =>
+        $"Please explain this regex:\n```regex\n{userQuestion}\n```";
+
+    // This agent doesn't need reference text
+    public override REFERENCE_TEXT_REPLACE_ACTION ReplaceAction =>
+        REFERENCE_TEXT_REPLACE_ACTION.ReferenceTextDisabled;
+}
+```
+
+Add a ComboBox above the AI pane to switch agents:
+
+```xml
+<Grid>
+    <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition/>
+    </Grid.RowDefinitions>
+
+    <ComboBox x:Name="agentCombo" SelectionChanged="AgentCombo_SelectionChanged">
+        <ComboBoxItem Content="Regex Generator" IsSelected="True"/>
+        <ComboBoxItem Content="Regex Explainer"/>
+    </ComboBox>
+
+    <pia:UCAIExpandable Grid.Row="1" x:Name="ucAi"
+                        TargetColumn="{Binding ElementName=AiColumn}"/>
+</Grid>
+```
+
+Handle the switch in code-behind:
+
+```csharp
+private RegexGeneratorAgent _generatorAgent = new();
+private RegexExplainerAgent _explainerAgent = new();
+
+private void Window_Loaded(object sender, RoutedEventArgs e) {
+    ucAi.AiControl.Configure(_generatorAgent);
+    ucAi.AiControl.ImportData(LoadSavedSettings());
+}
+
+private void AgentCombo_SelectionChanged(object sender, SelectionChangedEventArgs e) {
+    if (!IsLoaded) return;
+
+    AIOptions newAgent = agentCombo.SelectedIndex == 0 ? _generatorAgent : _explainerAgent;
+    ucAi.Configure(newAgent);  // Clears chat, keeps provider settings
+}
+```
+
+You can also trigger agent switches programmatically and send a message:
+
+```csharp
+private async void ExplainRegex_Click(object sender, RoutedEventArgs e) {
+    agentCombo.SelectedIndex = 1;  // Switch to explainer agent
+    await ucAi.SendMessage($"`{txtRegex.Text}`");  // Send the current pattern
+}
+```
+
+## Developer / Technical Notes
+The control uses Micrsoft's Microsoft.SemanticKernel AI backend to talk with different AI model providers.  Most providers can work with the standard OpenAI style protocol so can be added using the custom endpoint provider in our settings.  Additional providers that work through Microsoft.SemanticKernel can be added pretty easily, look at `AiModelProvider.cs` for examples.  `GithubCopilotProvider.cs` shows the most complex provider using a custom login flow and auto token discovery.

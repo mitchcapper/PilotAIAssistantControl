@@ -23,7 +23,15 @@ namespace TestWPFApp {
 		}
 		public static OurRegexEngine Instance = new OurRegexEngine();
 	}
+	public class SimpleExplainerOptions : AIOptions {
+		public override string GetSystemPrompt()  => "You are an expert in regular expressions and the user needs you to explain how a given regex pattern works. You can assume they know programming but are not a regular expression expert.  By default provide a clear but concise explanation for how the user's regular expression works. For simple regular expressions this should only be a few sentences, for complex regex maybe a paragraph or a bit more.  Your goal is to summarize it initially only. Then let the user know they can ask followup questions for examples of it matching, a more through breakdown, etc.   Do not give examples by default.  Use markdown formatting for it to be as easy to read as possible.";
 
+		public override string HintForUserInput => "Provide a regex pattern to explain...";
+		public override string FormatUserQuestion(string userQuestion) => $"Please explain the following regex pattern:\n```regex\n{userQuestion}\n```";
+		public override REFERENCE_TEXT_REPLACE_ACTION ReplaceAction => REFERENCE_TEXT_REPLACE_ACTION.ReferenceTextDisabled;
+		public override void HandleDebugMessage(string msg) => System.Diagnostics.Debug.WriteLine(msg);
+
+	}
 	public class OurOptions : AIOptions {
 		public OurEngineOptions Engine => OurRegexEngine.Instance;
 
@@ -39,7 +47,7 @@ namespace TestWPFApp {
 		public override string FormatUserQuestion(string userQuestion) => $"Current pattern:\n```regex\n{MainWindow.Instance.txtRegex.Text}\n```\n\nMy question: {userQuestion}";
 		 
 		public override string GetCurrentReferenceText() => MainWindow.Instance.txtTest.Text;
-		public override IEnumerable<CodeblockAction> CodeblockActions => [ GenericCodeblockAction.ClipboardAction,
+		public override IEnumerable<ICodeblockAction> CodeblockActions => [ GenericCodeblockAction.ClipboardAction,
 				new GenericCodeblockAction("📝 Use as Pattern", async ( block ) =>
 				{
 

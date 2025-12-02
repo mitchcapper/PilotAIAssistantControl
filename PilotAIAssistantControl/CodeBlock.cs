@@ -10,8 +10,8 @@ namespace PilotAIAssistantControl {
 		string Code { get; }
 	}
 
-	public record BlockAction(CodeblockAction Action, CodeBlock Block);
-	public class GenericCodeblockAction : CodeblockAction {
+	public record BlockAction(ICodeblockAction Action, CodeBlock Block);
+	public class GenericCodeblockAction : ICodeblockAction {
 		public GenericCodeblockAction(string displayName, Func<ICodeBlock, Task<bool>> DoActionDel) {
 			DisplayName = displayName;
 			this.DoActionDel = DoActionDel;
@@ -41,7 +41,7 @@ namespace PilotAIAssistantControl {
 		};
 
 	}
-	public interface CodeblockAction {
+	public interface ICodeblockAction {
 		Task<bool> DoAction(ICodeBlock block);
 		/// <summary>
 		/// ie 📋 Copy
