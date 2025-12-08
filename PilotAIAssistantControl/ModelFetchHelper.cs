@@ -4,7 +4,8 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Threading.Tasks;
 
 namespace PilotAIAssistantControl {
@@ -49,26 +50,30 @@ namespace PilotAIAssistantControl {
 				}
 
 				var responseBody = await response.Content.ReadAsStringAsync();
-				var jsonDoc = JsonDocument.Parse(responseBody);
+				var jsonDoc = JObject.Parse(responseBody);
 
-				if (!jsonDoc.RootElement.TryGetProperty("data", out var dataArray)) {
+				if (!jsonDoc.ContainsKey("data") || !(jsonDoc["data"] is JArray dataArray)) {
 					result.ErrorMessage = "Invalid response format: missing 'data' field";
 					return result;
 				}
 
 				var models = new List<IAIModelProvider.SimpleModel>();
 
-				foreach (var modelElement in dataArray.EnumerateArray()) {
+				foreach (var modelElement in dataArray) {
 					try {
-						var id = modelElement.TryGetProperty("id", out var idProp) ? idProp.GetString() : null;
+						var id = modelElement["id"]?.ToString();
 						if (string.IsNullOrWhiteSpace(id))
 							continue;
 
-						var created = modelElement.TryGetProperty("created", out var createdProp) && createdProp.ValueKind == JsonValueKind.Number
-							? createdProp.GetInt64()
-							: (long?)null;
+						var createdToken = modelElement["created"];
+						long? created = (createdToken != null && createdToken.Type == JTokenType.Integer)
+							? createdToken.Value<long>()
+							: null;
 
-						var ownedBy = modelElement.TryGetProperty("owned_by", out var ownedByProp) ? ownedByProp.GetString() : null;
+						var ownedBy = modelElement["owned_by"]?.ToString();
+						var displayName = modelElement["display_name"]?.ToString();
+						if (String.IsNullOrWhiteSpace(displayName))
+							displayName = id;
 
 						var tooltip = $"ID: {id}";
 						if (!string.IsNullOrWhiteSpace(ownedBy))
@@ -78,7 +83,7 @@ namespace PilotAIAssistantControl {
 
 						models.Add(new IAIModelProvider.SimpleModel {
 							Id = id,
-							DisplayName = id,
+							DisplayName = displayName,
 							Tooltip = tooltip,
 							Created = created
 						});

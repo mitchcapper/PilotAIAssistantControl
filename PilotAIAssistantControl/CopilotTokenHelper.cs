@@ -7,7 +7,8 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Text.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -200,13 +201,12 @@ namespace PilotAIAssistantControl {
 					return result;
 				}
 
-				using var deviceDoc = JsonDocument.Parse(deviceCodeJson);
-				var deviceCode = deviceDoc.RootElement.GetProperty("device_code").GetString();
-				var userCode = deviceDoc.RootElement.GetProperty("user_code").GetString();
-				var verificationUri = deviceDoc.RootElement.GetProperty("verification_uri").GetString();
-				var expiresIn = deviceDoc.RootElement.GetProperty("expires_in").GetInt32();
-				var interval = deviceDoc.RootElement.TryGetProperty("interval", out var intervalProp)
-					? intervalProp.GetInt32() : 5;
+				var deviceDoc = JObject.Parse(deviceCodeJson);
+				var deviceCode = deviceDoc["device_code"]?.ToString();
+				var userCode = deviceDoc["user_code"]?.ToString();
+				var verificationUri = deviceDoc["verification_uri"]?.ToString();
+				var expiresIn = deviceDoc["expires_in"]?.Value<int>() ?? 900;
+				var interval = deviceDoc["interval"]?.Value<int>() ?? 5;
 
 				result.UserCode = userCode;
 				result.VerificationUri = verificationUri;
@@ -242,11 +242,11 @@ namespace PilotAIAssistantControl {
 					var tokenResponse = await client.PostAsync(GitHubTokenUrl, tokenRequest, cancellationToken);
 					var tokenJson = await tokenResponse.Content.ReadAsStringAsync(cancellationToken);
 
-					using var tokenDoc = JsonDocument.Parse(tokenJson);
+					var tokenDoc = JObject.Parse(tokenJson);
 
-					if (tokenDoc.RootElement.TryGetProperty("access_token", out var accessToken)) {
+					if (tokenDoc.ContainsKey("access_token")) {
 						result.Success = true;
-						result.Token = accessToken.GetString();
+						result.Token = tokenDoc["access_token"]?.ToString();
 
 						// Save the token for future use
 						await SaveTokenAsync(result.Token!);
@@ -254,8 +254,8 @@ namespace PilotAIAssistantControl {
 						return result;
 					}
 
-					if (tokenDoc.RootElement.TryGetProperty("error", out var error)) {
-						var errorCode = error.GetString();
+					if (tokenDoc.ContainsKey("error")) {
+						var errorCode = tokenDoc["error"]?.ToString();
 
 						if (errorCode == "authorization_pending") {
 							// User hasn't completed auth yet, keep polling
@@ -313,10 +313,10 @@ namespace PilotAIAssistantControl {
 				if (File.Exists(appsJsonPath)) {
 					try {
 						var existingJson = await File.ReadAllTextAsync(appsJsonPath);
-						using var doc = JsonDocument.Parse(existingJson);
-						foreach (var prop in doc.RootElement.EnumerateObject()) {
+						var doc = JObject.Parse(existingJson);
+						foreach (var prop in doc.Properties()) {
 							if (prop.Name != "regexpress") {
-								config[prop.Name] = JsonSerializer.Deserialize<object>(prop.Value.GetRawText())!;
+								config[prop.Name] = prop.Value.ToObject<object>()!;
 							}
 						}
 					} catch {
@@ -324,7 +324,7 @@ namespace PilotAIAssistantControl {
 					}
 				}
 
-				var json = JsonSerializer.Serialize(config, new JsonSerializerOptions { WriteIndented = true });
+				var json = JsonConvert.SerializeObject(config, Formatting.Indented);
 				await File.WriteAllTextAsync(appsJsonPath, json);
 			} catch {
 				// Silently fail - token is still usable for this session
@@ -393,13 +393,13 @@ namespace PilotAIAssistantControl {
 		private static string? ExtractTokenFromAppsJson(string path) {
 			try {
 				var json = File.ReadAllText(path);
-				using var doc = JsonDocument.Parse(json);
+				var doc = JObject.Parse(json);
 
 				// The apps.json format is typically an object with app entries
 				// Each entry may have an oauth_token field
-				foreach (var property in doc.RootElement.EnumerateObject()) {
-					if (property.Value.TryGetProperty("oauth_token", out var tokenElement)) {
-						var token = tokenElement.GetString();
+				foreach (var property in doc.Properties()) {
+					if (property.Value is JObject obj && obj.ContainsKey("oauth_token")) {
+						var token = obj["oauth_token"]?.ToString();
 						if (!string.IsNullOrEmpty(token))
 							return token;
 					}
@@ -413,12 +413,13 @@ namespace PilotAIAssistantControl {
 		private static string? ExtractTokenFromHostsJson(string path) {
 			try {
 				var json = File.ReadAllText(path);
-				using var doc = JsonDocument.Parse(json);
+				var doc = JObject.Parse(json);
 
 				// The hosts.json format from older plugins
-				if (doc.RootElement.TryGetProperty("github.com", out var githubEntry)) {
-					if (githubEntry.TryGetProperty("oauth_token", out var tokenElement)) {
-						return tokenElement.GetString();
+				if (doc.ContainsKey("github.com")) {
+					var githubEntry = doc["github.com"];
+					if (githubEntry is JObject githubObj && githubObj.ContainsKey("oauth_token")) {
+						return githubObj["oauth_token"]?.ToString();
 					}
 				}
 			} catch {
@@ -494,19 +495,20 @@ namespace PilotAIAssistantControl {
 				}
 
 				var json = await response.Content.ReadAsStringAsync();
-				using var doc = JsonDocument.Parse(json);
+				var doc = JObject.Parse(json);
 
 				var apiToken = new CopilotApiToken();
 
-				if (doc.RootElement.TryGetProperty("token", out var tokenElement))
-					apiToken.Token = tokenElement.GetString() ?? string.Empty;
+				if (doc.ContainsKey("token"))
+					apiToken.Token = doc["token"]?.ToString() ?? string.Empty;
 
-				if (doc.RootElement.TryGetProperty("expires_at", out var expiresElement))
-					apiToken.ExpiresAt = expiresElement.GetInt64();
+				if (doc.ContainsKey("expires_at"))
+					apiToken.ExpiresAt = doc["expires_at"]?.Value<long>() ?? 0;
 
-				if (doc.RootElement.TryGetProperty("endpoints", out var endpointsElement)) {
-					if (endpointsElement.TryGetProperty("api", out var apiElement))
-						apiToken.ApiEndpoint = apiElement.GetString() ?? string.Empty;
+				if (doc.ContainsKey("endpoints")) {
+					var endpointsElement = doc["endpoints"];
+					if (endpointsElement is JObject endpointsObj && endpointsObj.ContainsKey("api"))
+						apiToken.ApiEndpoint = endpointsObj["api"]?.ToString() ?? string.Empty;
 				}
 
 				if (string.IsNullOrEmpty(apiToken.Token) || string.IsNullOrEmpty(apiToken.ApiEndpoint)) {
@@ -622,77 +624,72 @@ namespace PilotAIAssistantControl {
 				}
 
 				var json = await response.Content.ReadAsStringAsync();
-				using var doc = JsonDocument.Parse(json);
+				var doc = JObject.Parse(json);
 
-				if (doc.RootElement.TryGetProperty("data", out var dataArray)) {
-					foreach (var modelElement in dataArray.EnumerateArray()) {
+				if (doc.ContainsKey("data") && doc["data"] is JArray dataArray) {
+					foreach (var modelElement in dataArray) {
 						try {
 							var model = new CopilotModel();
 
-							if (modelElement.TryGetProperty("id", out var idElement))
-								model.Id = idElement.GetString() ?? string.Empty;
-
-							if (modelElement.TryGetProperty("name", out var nameElement))
-								model.Name = nameElement.GetString() ?? model.Id;
-							else
-								model.Name = model.Id;
+							model.Id = modelElement["id"]?.ToString() ?? string.Empty;
+							model.Name = modelElement["name"]?.ToString() ?? model.Id;
 
 							// Skip models without an ID
 							if (string.IsNullOrEmpty(model.Id))
 								continue;
 
 							// Check policy state - skip disabled models
-							if (modelElement.TryGetProperty("policy", out var policyElement)) {
-								if (policyElement.TryGetProperty("state", out var stateElement)) {
-									var state = stateElement.GetString();
+							if (modelElement["policy"] is JObject policyElement) {
+								if (policyElement["state"] is JToken stateElement) {
+									var state = stateElement.ToString();
 									if (state != null && state != "enabled")
 										continue; // Skip disabled models
 								}
 							}
 
 							// Check model_picker_enabled - only show models that can be selected
-							if (modelElement.TryGetProperty("model_picker_enabled", out var pickerElement)) {
-								if (!pickerElement.GetBoolean())
+							if (modelElement["model_picker_enabled"] is JToken pickerElement) {
+								if (pickerElement.Type == JTokenType.Boolean && !pickerElement.Value<bool>())
 									continue; // Skip models not available in picker
 							}
 
 							// Parse billing info (from billing.multiplier and billing.is_premium)
-							if (modelElement.TryGetProperty("billing", out var billingElement)) {
-								if (billingElement.TryGetProperty("multiplier", out var multiplierElement)) {
-									if (multiplierElement.ValueKind == JsonValueKind.Number)
-										model.TokenMultiplier = multiplierElement.GetDouble();
+							if (modelElement["billing"] is JObject billingElement) {
+								if (billingElement["multiplier"] is JToken multiplierElement) {
+									if (multiplierElement.Type == JTokenType.Integer || multiplierElement.Type == JTokenType.Float)
+										model.TokenMultiplier = multiplierElement.Value<double>();
 								}
 
-								if (billingElement.TryGetProperty("is_premium", out var premiumElement))
-									model.IsPreview = premiumElement.GetBoolean(); // Premium models shown as preview
+								if (billingElement["is_premium"] is JToken premiumElement)
+									model.IsPreview = premiumElement.Value<bool>(); // Premium models shown as preview
 							}
 
 							// Parse capabilities info
-							if (modelElement.TryGetProperty("capabilities", out var capabilitiesElement)) {
-								if (capabilitiesElement.TryGetProperty("family", out var familyElement))
-									model.Family = familyElement.GetString();
+							if (modelElement["capabilities"] is JObject capabilitiesElement) {
+								if (capabilitiesElement["family"] is JToken familyElement)
+									model.Family = familyElement.ToString();
 
 								// Parse nested limits
-								if (capabilitiesElement.TryGetProperty("limits", out var limitsElement)) {
-									if (limitsElement.TryGetProperty("max_prompt_tokens", out var promptTokens) &&
-										promptTokens.ValueKind == JsonValueKind.Number)
-										model.MaxInputTokens = (int)promptTokens.GetInt64();
+								if (capabilitiesElement["limits"] is JObject limitsElement) {
+									if (limitsElement["max_prompt_tokens"] is JToken promptTokens &&
+										(promptTokens.Type == JTokenType.Integer || promptTokens.Type == JTokenType.Float))
+										model.MaxInputTokens = (int)promptTokens.Value<long>();
 
-									if (limitsElement.TryGetProperty("max_output_tokens", out var outputTokens) &&
-										outputTokens.ValueKind == JsonValueKind.Number)
-										model.MaxOutputTokens = outputTokens.GetInt32();
+									if (limitsElement["max_output_tokens"] is JToken outputTokens &&
+										(outputTokens.Type == JTokenType.Integer || outputTokens.Type == JTokenType.Float))
+										model.MaxOutputTokens = outputTokens.Value<int>();
 								}
 							}
 
 							// Parse vendor info (can be string or object)
-							if (modelElement.TryGetProperty("vendor", out var vendorElement)) {
-								if (vendorElement.ValueKind == JsonValueKind.String)
-									model.Vendor = vendorElement.GetString();
+							if (modelElement["vendor"] is JToken vendorElement) {
+								if (vendorElement.Type == JTokenType.String)
+									model.Vendor = vendorElement.ToString();
 							}
 
 							// Check for is_chat_default flag
-							if (modelElement.TryGetProperty("is_chat_default", out var defaultElement)) {
-								if (defaultElement.GetBoolean())
+							if (modelElement["is_chat_default"] is JToken defaultElement) {
+								if (defaultElement.Value<bool>())
 									model.IsPreview = false; // Default models are not preview
 							}
 							if (model.Name.Contains("beta", StringComparison.CurrentCultureIgnoreCase))
