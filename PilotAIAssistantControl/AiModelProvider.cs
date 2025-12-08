@@ -3,7 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Threading.Tasks;
+using PilotAIAssistantControl.MVVM;
+
 #if WPF
 using System.Windows.Controls;
 #else
@@ -31,15 +34,27 @@ namespace PilotAIAssistantControl {
 			string Id { get; }
 			string Tooltip { get; }
 		}
+		public class SimpleModel : IModel {
+			public string Id { get; set; }
+			public string DisplayName { get; set; }
+			public string Tooltip { get; set; }
+			public long? Created { get; set; }
+		}
 		public interface IUserData {
 			string Endpoint { get; set; }
 			string ModelId { get; set; }
 			string Token { get; set; }
+			string ModelsListEndpoint { get; set; }
 		}
-		public class GenericProviderUserData : IUserData {
+		public class GenericProviderUserData : BaseNotifyObject, IUserData {
 			public string Endpoint { get; set; }
 			public string ModelId { get; set; }
 			public string Token { get; set; }
+
+			public string? ModelsListEndpoint {
+				get; set => Set(ref field, value);
+			}
+
 
 		}
 		public static IAIModelProvider[] DefaultProviders = [
@@ -57,6 +72,7 @@ namespace PilotAIAssistantControl {
 				TokenHelp="Get your API key from platform.openai.com/api-keys",
 				ModelHint="Enter model name (e.g., gpt-4o, gpt-4-turbo, gpt-3.5-turbo)",
 				DefaultModelId="gpt-4o",
+				DefaultEndpoint="https://api.openai.com/v1",
 			},
 			new GenericAIModelProvider() {Id="ollama",Name="Local / Custom Endpoint(Ollama)", Description="Connects to a custom OpenAI endpoint instance",
 				TokenHint="API Key (optional)",
@@ -72,7 +88,7 @@ namespace PilotAIAssistantControl {
 
 		   ];
 		IModel? SelectedModel { get; set; }
-		ObservableCollection<IModel>? AvailableModels { get; }
+		ObservableCollection<IModel>? AvailableModels { get;set; }
 		string Id { get; }
 		IUserData UserData { get; }
 		string Name { get; }
@@ -81,7 +97,7 @@ namespace PilotAIAssistantControl {
 		string TokenHint { get; }
 		string TokenHelp { get; }
 		string EndpointHint { get; }
-
+		
 		bool AllowEndpointCustomization { get; }
 		bool ShowAPIKeyField {get;}
 		bool TokenRequired { get; }
@@ -109,9 +125,62 @@ namespace PilotAIAssistantControl {
 		UserControl? ControlInstance { get;set; }
 		string DefaultModelId { get; }
 		string DefaultEndpoint { get; }
+		string DefaultModelListEndpoint { get; }
 	}
-	public class GenericAIModelProvider : BaseAiModelProvider<IAIModelProvider.GenericProviderUserData> {
+	
 
+	public class GenericAIModelProvider : BaseAiModelProvider<IAIModelProvider.GenericProviderUserData> {
+		public GenericAIModelProvider() : base() {
+			AvailableModels = new ObservableCollection<IAIModelProvider.IModel>();
+		}
+
+		public override void ProviderSelected() {
+			if (AvailableModels?.Count == 0 && ! String.IsNullOrWhiteSpace(UserData.ModelsListEndpoint))
+				RefreshModels();
+		}
+
+		public override async void RefreshModels() {
+			if (string.IsNullOrWhiteSpace(UserData.ModelsListEndpoint)) {
+				RaiseStatusMessage("No models endpoint configured. Enter model name manually.", isError: false);
+				return;
+			}
+
+			if (TokenRequired && string.IsNullOrWhiteSpace(UserData.Token)) {
+				RaiseStatusMessage("API key required. Please enter your API key first.", isError: true);
+				return;
+			}
+
+			if (string.IsNullOrWhiteSpace(UserData.Endpoint)) {
+				RaiseStatusMessage("Endpoint required. Please configure the endpoint.", isError: true);
+				return;
+			}
+
+			try {
+				var result = await ModelFetchHelper.FetchOpenAICompatibleModelsAsync(
+					 GetFullModelListEndpoint(),
+					UserData.Token,
+					HTTPHeadersToAdd);
+
+				AvailableModels?.Clear();
+
+				if (result.Success && result.Models.Count > 0) {
+					foreach (var model in result.Models)
+						AvailableModels?.Add(model);
+					RaiseStatusMessage($"✓ Discovered {result.Models.Count} available models", isError: false);
+					if (AvailableModels != null)
+						SelectedModel = AvailableModels.FirstOrDefault(a => a.Id == UserData.ModelId) ?? AvailableModels.FirstOrDefault();
+				} else if (!result.Success) {
+					RaiseStatusMessage(result.ErrorMessage ?? "Failed to fetch models", isError: true);
+				} else {
+					RaiseStatusMessage("No models available", isError: true);
+				}
+			} catch (Exception ex) {
+				AvailableModels?.Clear();
+				RaiseStatusMessage($"Error: {ex.Message}", isError: true);
+			}
+		}
+
+		private string GetFullModelListEndpoint() => UserData.ModelsListEndpoint.Contains("://") ? UserData.ModelsListEndpoint : UserData.Endpoint + UserData.ModelsListEndpoint;
 	}
 	public class BaseAiModelProvider<USER_DATA_TYPE> :  MVVM.BaseNotifyObject, IAIModelProvider where USER_DATA_TYPE : class, IAIModelProvider.IUserData, new() {
 		public BaseAiModelProvider() {
@@ -122,6 +191,7 @@ namespace PilotAIAssistantControl {
 		protected virtual void SetDefaultUserData() {
 			UserData.Endpoint = DefaultEndpoint;
 			UserData.ModelId = DefaultModelId;
+			UserData.ModelsListEndpoint = DefaultEndpoint;
 		}
 
 		public IAIModelProvider.IModel? SelectedModel {
@@ -163,8 +233,14 @@ namespace PilotAIAssistantControl {
 		public virtual void LoadData(JToken? data){
 
 			UserData = data?.ToObject<USER_DATA_TYPE>() ?? UserData;
-			if (! AllowEndpointCustomization)
+			if (! AllowEndpointCustomization) {
 				UserData.Endpoint = DefaultEndpoint;
+				UserData.ModelsListEndpoint = DefaultModelListEndpoint;
+			}else{
+				if (UserData.ModelsListEndpoint == null) //null but not empty
+					UserData.ModelsListEndpoint = DefaultModelListEndpoint;
+			}
+
 			if (String.IsNullOrWhiteSpace( UserData.ModelId))
 				SetDefaultUserData();
 
@@ -191,6 +267,7 @@ namespace PilotAIAssistantControl {
 		}
 		public string DefaultModelId { get; set; }
 		public string DefaultEndpoint { get; set; }
+		public string DefaultModelListEndpoint { get; set; }  = "/models";
 		IAIModelProvider.IUserData IAIModelProvider.UserData => UserData;
 
 		override public string ToString() => Name;

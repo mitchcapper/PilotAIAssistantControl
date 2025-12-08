@@ -211,8 +211,25 @@
                                 </StackPanel>
                             </StackPanel>
                         </Border>
+						<!-- Endpoint (for local providers) -->
+						<Border Name="EndpointSection" Style="{StaticResource SectionCard}" Visibility="{Binding SelectedPendingProvider.AllowEndpointCustomization, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">
+							<StackPanel>
+								<TextBlock Text="Custom Endpoint" Style="{StaticResource SectionHeader}"/>
+								<TextBlock Text="Endpoint URL:" Style="{StaticResource FieldLabel}"/>
+								<TextBox Name="TxtEndpoint" Text="{Binding SelectedPendingProvider.UserData.Endpoint, Mode=TwoWay}"/>
+								<TextBlock Style="{StaticResource HintText}" Text="{Binding SelectedPendingProvider.EndpointHint}"/>
+							</StackPanel>
+						</Border>
+						<!-- Models List Endpoint (editable for providers that support it) -->
+						<Border Name="ModelListEndpointSection" Style="{StaticResource SectionCard}" Visibility="{Binding SelectedPendingProvider.AllowEndpointCustomization, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">
+							<StackPanel>
+								<TextBlock Text="Models List Endpoint:" Style="{StaticResource FieldLabel}" Margin="0,8,0,4"/>
+								<TextBox Name="TxtModelsListEndpoint" Text="{Binding SelectedPendingProvider.UserData.ModelsListEndpoint, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+								<TextBlock Style="{StaticResource HintText}" Text="Leave empty to enter model names manually. Edit for custom endpoints."/>
+							</StackPanel>
+						</Border>
 
-                        <!-- Model Selection -->
+						<!-- Model Selection -->
                         <TextBlock Text="Model Selection" Style="{StaticResource SectionHeader}"/>
                         <Border Style="{StaticResource SectionCard}">
                             <StackPanel>
@@ -222,19 +239,18 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock Text="Model:" Style="{StaticResource FieldLabel}" Grid.Column="0"/>
-                                        <Button Name="BtnRefreshModels" Grid.Column="1" Content="↻ Refresh" Visibility="{Binding SelectedPendingProvider.AvailableModels, Converter={StaticResource boolNullVisibilityCollapsedConverter}}"
+									<Button Name="BtnRefreshModels" Grid.Column="1" Content="↻ Refresh" Visibility="{Binding SelectedPendingProvider.UserData.ModelsListEndpoint, Converter={StaticResource boolNullVisibilityCollapsedConverter}}"
                                             Click="RefreshModels_Click">
 											<ToolTipService.ToolTip>
 												<ToolTip Content="Fetch available models from the API"/>
 											</ToolTipService.ToolTip>
 										</Button>
                                 </Grid>
-
-                                <!-- Model Dropdown (when provider has AvailableModels) -->
+								<!-- Model Dropdown (when provider has AvailableModels) -->
                                 <ComboBox Name="ComboModel"
                                           ItemsSource="{Binding SelectedPendingProvider.AvailableModels}"
                                           SelectedItem="{Binding SelectedPendingProvider.SelectedModel, Mode=TwoWay}"
-                                          Visibility="{Binding SelectedPendingProvider.AvailableModels, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">
+                                          Visibility="{Binding SelectedPendingProvider.UserData.ModelsListEndpoint, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
                                             <TextBlock Text="{Binding DisplayName}">
@@ -247,25 +263,15 @@
                                 </ComboBox>
 
                                 <!-- Model Text Input (when provider doesn't have AvailableModels) -->
-                                <TextBox Name="TxtModelId" Text="{Binding SelectedPendingProvider.UserData.ModelId, Mode=TwoWay}" Visibility="{Binding SelectedPendingProvider.AvailableModels, Converter={StaticResource boolNullVisibilityCollapsedConverter},ConverterParameter=1}" />
+                                <TextBox Name="TxtModelId" Text="{Binding SelectedPendingProvider.UserData.ModelId, Mode=TwoWay}" Visibility="{Binding SelectedPendingProvider.UserData.ModelsListEndpoint, Converter={StaticResource boolNullVisibilityCollapsedConverter},ConverterParameter=1}" />
 
                                 <TextBlock Name="TxtModelHint" Style="{StaticResource HintText}"
                                            Text="{Binding SelectedPendingProvider.ModelHint}"/>
                             </StackPanel>
                         </Border>
 
-                        <!-- Endpoint (for local providers) -->
-                        <Border Name="EndpointSection" Style="{StaticResource SectionCard}" Visibility="{Binding SelectedPendingProvider.AllowEndpointCustomization, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">
-                            <StackPanel>
-                                <TextBlock Text="Custom Endpoint" Style="{StaticResource SectionHeader}"/>
-                                <TextBlock Text="Endpoint URL:" Style="{StaticResource FieldLabel}"/>
-                                <TextBox Name="TxtEndpoint" Text="{Binding SelectedPendingProvider.UserData.Endpoint, Mode=TwoWay}"/>
-                                <TextBlock Style="{StaticResource HintText}"
-                                           Text="{Binding SelectedPendingProvider.EndpointHint}"/>
-                            </StackPanel>
-                        </Border>
 
-                        <!-- Action Buttons -->
+						<!-- Action Buttons -->
                         <StackPanel>
                             <Button Name="BtnTestConnection" Content="🔗 Test Connection"
                                     Click="TestConnection_Click" HorizontalAlignment="Stretch"/>

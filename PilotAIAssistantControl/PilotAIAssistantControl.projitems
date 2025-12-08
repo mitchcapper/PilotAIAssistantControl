@@ -19,6 +19,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)CopilotTokenHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)GithubCopilotProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MarkdownViewer.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ModelFetchHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MVVMSuperLite.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UCAIDataContext.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)WinUITextBoxExtensions.cs" />
