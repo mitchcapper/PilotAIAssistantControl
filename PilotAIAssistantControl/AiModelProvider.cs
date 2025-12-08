@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using PilotAIAssistantControl.MVVM;
 
@@ -180,12 +182,38 @@ namespace PilotAIAssistantControl {
 			}
 		}
 
-		private string GetFullModelListEndpoint() => UserData.ModelsListEndpoint.Contains("://") ? UserData.ModelsListEndpoint : UserData.Endpoint + UserData.ModelsListEndpoint;
+		private string GetFullModelListEndpoint() => UserData.ModelsListEndpoint?.Contains("://") == true ? UserData.ModelsListEndpoint : UserData.Endpoint + UserData.ModelsListEndpoint;
 	}
 	public class BaseAiModelProvider<USER_DATA_TYPE> :  MVVM.BaseNotifyObject, IAIModelProvider where USER_DATA_TYPE : class, IAIModelProvider.IUserData, new() {
 		public BaseAiModelProvider() {
 			UserData=new();
 			SetDefaultUserData();
+		}
+
+		/// <summary>Encrypts data using DPAPI for current user.</summary>
+		protected static string? EncryptData(string? data) {
+			if (string.IsNullOrEmpty(data))
+				return data;
+			try {
+				var bytes = Encoding.UTF8.GetBytes(data);
+				var encrypted = ProtectedData.Protect(bytes, s_additionalEntropy, DataProtectionScope.CurrentUser);
+				return Convert.ToBase64String(encrypted);
+			} catch {
+				return data; // Return original if encryption fails
+			}
+		}
+		static byte[] s_additionalEntropy = [0x50, 0x69, 0x6C, 0x6F, 0x74, 0x41, 0x49, 0x41, 0x73, 0x73, 0x69, 0x73, 0x74, 0x61, 0x6E, 0x74, 0x23, 0x40, 0x43, 0x6F, 0x6E, 0x74, 0x72, 0x6F, 0x6C, 0x45, 0x6E, 0x74, 0x72, 0x6F, 0x70, 0x79];
+		/// <summary>Decrypts data using DPAPI for current user.</summary>
+		protected static string? DecryptData(string? data) {
+			if (string.IsNullOrEmpty(data))
+				return data;
+			try {
+				var encrypted = Convert.FromBase64String(data);
+				var bytes = ProtectedData.Unprotect(encrypted, s_additionalEntropy, DataProtectionScope.CurrentUser);
+				return Encoding.UTF8.GetString(bytes);
+			} catch {
+				return data; // Return original if decryption fails (might be unencrypted legacy data)
+			}
 		}
 		public virtual bool TokenRequired { get; set; } = true;
 		protected virtual void SetDefaultUserData() {
@@ -233,6 +261,10 @@ namespace PilotAIAssistantControl {
 		public virtual void LoadData(JToken? data){
 
 			UserData = data?.ToObject<USER_DATA_TYPE>() ?? UserData;
+			
+			// Decrypt token if present
+			UserData.Token = DecryptData(UserData.Token) ?? string.Empty;
+			
 			if (! AllowEndpointCustomization) {
 				UserData.Endpoint = DefaultEndpoint;
 				UserData.ModelsListEndpoint = DefaultModelListEndpoint;
@@ -246,7 +278,15 @@ namespace PilotAIAssistantControl {
 
 		}
 
-		public virtual JToken SaveData() => JToken.FromObject(UserData);
+		public virtual JToken SaveData() {
+			var dataToSave = JObject.FromObject(UserData);
+			
+			// Encrypt token before saving
+			if (!string.IsNullOrEmpty(UserData.Token))
+				dataToSave[nameof(UserData.Token)] = EncryptData(UserData.Token);
+			
+			return dataToSave;
+		}
 
 		public virtual void ProviderSelected() { }
 

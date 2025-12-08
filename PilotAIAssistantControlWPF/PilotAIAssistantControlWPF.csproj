@@ -19,6 +19,7 @@
 		<PackageReference Include="MdXaml" Version="1.27.0" />
 		<PackageReference Include="Microsoft.SemanticKernel" Version="1.67.1" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+		<PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
 	</ItemGroup>
 
 	<Import Project="..\PilotAIAssistantControl\PilotAIAssistantControl.projitems" Label="Shared" />

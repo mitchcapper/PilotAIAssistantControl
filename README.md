@@ -18,7 +18,7 @@ You can optionally provide a "reference text/document" which can be a longer doc
 <!-- TOC -->
 
 - [PilotAiAssistControl](#pilotaiassistcontrol)
-	- [TOC](#toc)
+	- [Screenshots](#screenshots)
 	- [Installation](#installation)
 	- [Quick Start](#quick-start)
 		- [Add Namespace](#add-namespace)

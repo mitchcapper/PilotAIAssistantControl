@@ -47,16 +47,13 @@ namespace PilotAIAssistantControl {
 		}
 
 		public override void LoadData(JToken? data) {
-			UserData = data?.ToObject<CoPilotUserData>() ?? UserData;
-			// Lightweight - just restore settings, NO API calls
-
+			base.LoadData(data);
 			AutoDiscover = UserData.AutoDiscover;
-
 		}
 
 		public override JToken SaveData() {
 			UserData.AutoDiscover = AutoDiscover;
-			var ret = JObject.FromObject(UserData);
+			var ret = base.SaveData();
 			if (AutoDiscover)
 				ret[nameof(CoPilotUserData.Token)] = null; // Don't save token if auto-discover is enabled
 			return ret;
