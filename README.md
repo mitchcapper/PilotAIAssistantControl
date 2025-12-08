@@ -1,6 +1,6 @@
 # PilotAiAssistControl
 
-A WPF (and beta WinUI3) user control that provides an AI chat assistant interface with support for multiple AI providers (GitHub Copilot, OpenAI, and custom providers). It is meant to be a very quick way to bolt on an AI agent to any application you have.  You can provide context and direct action buttons inline with the AI responses.  It includes both a standalone chat control and an expandable sidebar version.  It has integrated support for discovery of local existing GitHub Copilot tokens (ie from vscode) and also integrates a login flow for users that don't already have it present.
+A WPF (and beta WinUI3) user control that provides an AI chat assistant interface with support for multiple AI providers (GitHub Copilot, Google Gemini, Anthropic, OpenAI, GitHub Models, and custom or local providers like ollama that support OpenAI API endpoints). It is meant to be a very quick way to bolt on an AI agent to any application you have.  You can provide context and direct action buttons inline with the AI responses.  It includes both a standalone chat control and an expandable sidebar version.  It has integrated support for discovery of local existing GitHub Copilot tokens (ie from vscode) and also integrates a login flow for users that don't already have it present.
 
 The included Expandable control allows it to easily collapse down to 40 pixels when not used.  It has built in configuration UI for easy setup.
 
@@ -127,8 +127,11 @@ private void Window_Loaded(object sender, RoutedEventArgs e) {
 - Newtonsoft.Json (for settings serialization)
 
 ## Saving and Restoring User Settings
+The control supports saving and restoring the user's AI provider configuration.  You must call ImportData even if you are not storing any settings (just pass null) as the control does not initialize until you do.  You can call ExportData/ImportData to save/restore settings.  It will return a Serializable friendly object from ExportData and expects that object back for importing.  You can append this into your own serializable config if so desired.
 
-The control supports saving and restoring the user's AI provider configuration:
+**Security**: User tokens can be saved in this data for their AI providers depending on the provider.  If the token is saved it is protected with the microsoft DPAPI which locks it to the current user account.  You should not need to do anything the control will handle it all.
+
+Here is a simple example:
 
 ```csharp
 // Save settings (e.g., on window closing)

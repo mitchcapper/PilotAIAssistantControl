@@ -50,16 +50,20 @@ namespace PilotAIAssistantControl {
 				}
 
 				var responseBody = await response.Content.ReadAsStringAsync();
-				var jsonDoc = JObject.Parse(responseBody);
-
-				if (!jsonDoc.ContainsKey("data") || !(jsonDoc["data"] is JArray dataArray)) {
+				var jsonDoc = JToken.Parse(responseBody);
+				JArray modelArray = null;
+				if (jsonDoc is JArray arr)
+					modelArray = arr;
+				else if (jsonDoc is JObject obj && obj.ContainsKey("data") && obj["data"] is JArray dataArr)
+					modelArray = dataArr;
+				else {
 					result.ErrorMessage = "Invalid response format: missing 'data' field";
 					return result;
 				}
 
 				var models = new List<IAIModelProvider.SimpleModel>();
 
-				foreach (var modelElement in dataArray) {
+				foreach (var modelElement in modelArray) {
 					try {
 						var id = modelElement["id"]?.ToString();
 						if (string.IsNullOrWhiteSpace(id))
@@ -71,7 +75,8 @@ namespace PilotAIAssistantControl {
 							: null;
 
 						var ownedBy = modelElement["owned_by"]?.ToString();
-						var displayName = modelElement["display_name"]?.ToString();
+						
+						var displayName = (modelElement["display_name"] ?? modelElement["name"])?.ToString();
 						if (String.IsNullOrWhiteSpace(displayName))
 							displayName = id;
 
@@ -80,6 +85,10 @@ namespace PilotAIAssistantControl {
 							tooltip += $"\nOwned by: {ownedBy}";
 						if (created.HasValue)
 							tooltip += $"\nCreated: {DateTimeOffset.FromUnixTimeSeconds(created.Value):yyyy-MM-dd}";
+
+						var summary = modelElement["summary"]?.ToString();
+						if (! string.IsNullOrWhiteSpace(summary))
+							tooltip += $"\n{summary}";
 
 						models.Add(new IAIModelProvider.SimpleModel {
 							Id = id,

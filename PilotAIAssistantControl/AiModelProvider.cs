@@ -8,6 +8,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using PilotAIAssistantControl.MVVM;
+using Newtonsoft.Json;
+
 
 #if WPF
 using System.Windows.Controls;
@@ -38,6 +40,7 @@ namespace PilotAIAssistantControl {
 		}
 		public class SimpleModel : IModel {
 			public string Id { get; set; }
+			[JsonProperty("display_name")]
 			public string DisplayName { get; set; }
 			public string Tooltip { get; set; }
 			public long? Created { get; set; }
@@ -67,14 +70,29 @@ namespace PilotAIAssistantControl {
 				TokenHelp="Create a PAT at github.com/settings/tokens with 'models:read' scope",
 				ModelHint="Enter model name (e.g., gpt-4o, gpt-4o-mini)",
 				DefaultModelId="gpt-4o",
-				DefaultEndpoint="https://models.inference.ai.azure.com",
+				DefaultEndpoint="https://models.github.ai/inference",
+				DefaultModelListEndpoint="https://models.github.ai/catalog/models"
 			},
 			new GenericAIModelProvider(){Id="OpenAI",Name="OpenAI",Description="Uses OpenAI API directly with your API key",
 				TokenHint="OpenAI API Key",
 				TokenHelp="Get your API key from platform.openai.com/api-keys",
 				ModelHint="Enter model name (e.g., gpt-4o, gpt-4-turbo, gpt-3.5-turbo)",
-				DefaultModelId="gpt-4o",
+				DefaultModelId="gpt-5.1-codex",
 				DefaultEndpoint="https://api.openai.com/v1",
+			},
+			new GenericAIModelProvider(){Id="Gemini",Name="Google Gemini",Description="Uses Google Gemini via OpenAI-compatible endpoint",
+				TokenHint="Gemini API Key",
+				TokenHelp="Get your API key from aistudio.google.com",
+				ModelHint="Enter model name (e.g., gemini-1.5-flash)",
+				DefaultModelId="gemini-pro-latest",
+				DefaultEndpoint="https://generativelanguage.googleapis.com/v1beta/openai",
+			},
+			new GenericAIModelProvider(){Id="Anthropic",Name="Anthropic",Description="Uses Anthropic models",
+				TokenHint="Anthropic API Key",
+				TokenHelp="Get your API key from console.anthropic.com",
+				ModelHint="Enter model name (e.g., claude-3-5-sonnet-20240620)",
+				DefaultModelId="claude-3-5-sonnet-20240620",
+				DefaultEndpoint="https://api.anthropic.com/v1",
 			},
 			new GenericAIModelProvider() {Id="ollama",Name="Local / Custom Endpoint(Ollama)", Description="Connects to a custom OpenAI endpoint instance",
 				TokenHint="API Key (optional)",
@@ -99,7 +117,7 @@ namespace PilotAIAssistantControl {
 		string TokenHint { get; }
 		string TokenHelp { get; }
 		string EndpointHint { get; }
-		
+
 		bool AllowEndpointCustomization { get; }
 		bool ShowAPIKeyField {get;}
 		bool TokenRequired { get; }
@@ -129,7 +147,7 @@ namespace PilotAIAssistantControl {
 		string DefaultEndpoint { get; }
 		string DefaultModelListEndpoint { get; }
 	}
-	
+
 
 	public class GenericAIModelProvider : BaseAiModelProvider<IAIModelProvider.GenericProviderUserData> {
 		public GenericAIModelProvider() : base() {
@@ -219,7 +237,8 @@ namespace PilotAIAssistantControl {
 		protected virtual void SetDefaultUserData() {
 			UserData.Endpoint = DefaultEndpoint;
 			UserData.ModelId = DefaultModelId;
-			UserData.ModelsListEndpoint = DefaultEndpoint;
+			UserData.ModelsListEndpoint = DefaultModelListEndpoint;
+
 		}
 
 		public IAIModelProvider.IModel? SelectedModel {
@@ -261,10 +280,10 @@ namespace PilotAIAssistantControl {
 		public virtual void LoadData(JToken? data){
 
 			UserData = data?.ToObject<USER_DATA_TYPE>() ?? UserData;
-			
+
 			// Decrypt token if present
 			UserData.Token = DecryptData(UserData.Token) ?? string.Empty;
-			
+
 			if (! AllowEndpointCustomization) {
 				UserData.Endpoint = DefaultEndpoint;
 				UserData.ModelsListEndpoint = DefaultModelListEndpoint;
@@ -280,11 +299,11 @@ namespace PilotAIAssistantControl {
 
 		public virtual JToken SaveData() {
 			var dataToSave = JObject.FromObject(UserData);
-			
+
 			// Encrypt token before saving
 			if (!string.IsNullOrEmpty(UserData.Token))
 				dataToSave[nameof(UserData.Token)] = EncryptData(UserData.Token);
-			
+
 			return dataToSave;
 		}
 
