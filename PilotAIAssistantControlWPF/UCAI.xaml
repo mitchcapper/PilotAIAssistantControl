@@ -170,7 +170,7 @@
                         <StackPanel Orientation="Horizontal">
                             <CheckBox Name="ChkSendTargetText" Content="Send Target Text up to" VerticalAlignment="Center"
                                       IsChecked="{Binding SendReferenceText, Mode=TwoWay}" />
-                            <TextBox Name="TxtTargetTextLength" Text="{Binding MaxReferenceTextCharsToSend, Mode=TwoWay}" Width="55"
+                            <TextBox Name="TxtTargetTextLength" Text="{Binding MaxReferenceTextCharsToSend, Mode=TwoWay}" Width="65"
                                      Visibility="{Binding Options.AllowUserToSetMaxReferenceTextCharsToSend, Converter={StaticResource boolNullVisibilityCollapsedConverter}}"
                                      IsEnabled="{Binding IsChecked, ElementName=ChkSendTargetText}"/>
                             <TextBlock Text="chars to AI" VerticalAlignment="Center"

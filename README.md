@@ -6,6 +6,8 @@ The included Expandable control allows it to easily collapse down to 40 pixels w
 
 You can optionally provide a "reference text/document" which can be a longer document the user is working on and allow the user to control how much(if any) of it to send along.
 
+Note this is not yet published as a nuget package recommend cloning this repo, then in your solution add a project reference to the project.  
+
 ## Screenshots
 
 | In this screenshot it is the left panel | Config Pane | Collapsed View |
@@ -56,7 +58,7 @@ Install-Package PilotAiAssistControlWPF
 ### Add Namespace
 
 ```xml
-xmlns:pia="clr-namespace:PilotAIAssistantControl;assembly=PilotAIAssistantControl"
+xmlns:pia="clr-namespace:PilotAIAssistantControl;assembly=PilotAIAssistantControlWPF"
 ```
 
 ### Create Your Options Class
@@ -84,7 +86,7 @@ public class RegexAIOptions : AIOptions {
         <ColumnDefinition Width="*"/>
     </Grid.ColumnDefinitions>
 
-    <pia:UCAIExpandable x:Name="ucAiExpandable"
+    <pia:UCAIExpandable x:Name="ucAi"
                         TargetColumn="{Binding ElementName=AiColumn}"
                         DefaultSize="400"
                         MinExpandedSize="200"
@@ -110,13 +112,10 @@ public class RegexAIOptions : AIOptions {
 private void Window_Loaded(object sender, RoutedEventArgs e) {
     var options = new RegexAIOptions();
 
-    // For expandable version:
-    ucAiExpandable.AiControl.Configure(options);
-    ucAiExpandable.AiControl.ImportData(null); // Required even with no saved data
-
-    // Or for direct control:
     ucAi.Configure(options);
     ucAi.ImportData(null);
+
+    // Note if you are using the expandable control it just has helpful forwarders for the common functions but to access the entire normal ucAi control do ucAi.AiControl
 }
 ```
 
@@ -277,7 +276,7 @@ public class RegexAIOptions : AIOptions {
     public override string HintForUserInput => "Ask about a pattern or matching...";
     public override int DefaultMaxReferenceTextCharsToSend => 5000;
 
-    public override IEnumerable<CodeblockAction> CodeblockActions => [
+    public override IEnumerable<ICodeblockAction> CodeblockActions => [
         GenericCodeblockAction.ClipboardAction,
         new GenericCodeblockAction("📝 Use as Pattern", async (block) => {
             _mainWindow.txtPattern.Text = block.Code;
