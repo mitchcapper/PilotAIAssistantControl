@@ -91,10 +91,11 @@
                                             <TextBlock Text="{Binding Sender}" FontWeight="SemiBold"
                                                        Style="{StaticResource CaptionTextBlockStyle}"
                                                        Foreground="{Binding SenderColor}"/>
-                                            <mdxaml:MarkdownScrollViewer Markdown="{Binding Message}"
-                                                                          VerticalScrollBarVisibility="Disabled"
-                                                                          Background="Transparent"
-                                                                          MarkdownStyleName="Sasabune"/>
+                                         <mdxaml:MarkdownScrollViewer Markdown="{Binding Message}"
+                                                                                              VerticalScrollBarVisibility="Disabled"
+                                                                                              Background="Transparent"
+                                                                                              MarkdownStyleName="Sasabune"
+                                                                                              PreviewMouseWheel="Markdown_PreviewMouseWheel"/>
                                             <ItemsControl ItemsSource="{Binding CodeBlocks}"
                                                           Visibility="{Binding HasCodeBlocks, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">
                                                 <ItemsControl.ItemTemplate>

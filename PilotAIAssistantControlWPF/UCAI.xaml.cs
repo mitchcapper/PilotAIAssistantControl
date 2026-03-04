@@ -79,6 +79,16 @@ namespace PilotAIAssistantControl {
 		private async void AskAi_Click(object sender, RoutedEventArgs e) => await SendToAi();
 
 #if WPF
+		private void Markdown_PreviewMouseWheel(object sender, MouseWheelEventArgs e) {
+			e.Handled = true;
+			var newOffset = ChatScrollViewer.VerticalOffset - e.Delta;
+			if (newOffset < 0)
+				newOffset = 0;
+			ChatScrollViewer.ScrollToVerticalOffset(newOffset);
+		}
+#endif
+
+#if WPF
 		private void ChatInput_PreviewKeyDown(object sender, KeyEventArgs e) {
 			if (e.Key == Key.Up) {
 #else
