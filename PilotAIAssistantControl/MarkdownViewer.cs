@@ -20,17 +20,6 @@ namespace PilotAIAssistantControl {
 	/// </summary>
 #if WPF
 	public class MarkdownViewer : MarkdownScrollViewer {
-		public static readonly DependencyProperty MarkdownProperty =
-			DependencyProperty.Register(
-				nameof(Markdown),
-				typeof(string),
-				typeof(MarkdownViewer),
-				new PropertyMetadata(string.Empty));
-
-		public string Markdown {
-			get => (string)GetValue(MarkdownProperty);
-			set => SetValue(MarkdownProperty, value);
-		}
 
 		public MarkdownViewer() {
 			// Configure MdXaml defaults
