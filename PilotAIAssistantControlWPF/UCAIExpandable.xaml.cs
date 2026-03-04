@@ -23,6 +23,7 @@ namespace PilotAIAssistantControl {
 		public AIUserConfig ExportData() => InternalAiControl.ExportData();
 		public void ImportData(AIUserConfig? data) => InternalAiControl.ImportData(data);
 		public Task SendMessage(string message) => InternalAiControl.SendMessage(message);
+		public void AddAIResponseToChat(string response) => InternalAiControl.AddAIResponseToChat(response);
 
 		#region Dependency Properties
 

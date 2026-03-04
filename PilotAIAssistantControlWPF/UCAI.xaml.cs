@@ -269,15 +269,19 @@ namespace PilotAIAssistantControl {
 
 				// Remove "Thinking..." and show response
 				Messages.Remove(thinkingMsg);
-				var msg = ChatItem.CreateAiMessage(response);
-				foreach (var blk in msg.CodeBlocks)
-					blk.Actions = Options.CodeblockActions.Where(a => a.IsVisible(blk)).Select(a => new BlockAction(a, blk)).ToArray();
-
-				AddMessage(msg);
+				AddAIResponseToChat(response);
 			} catch (Exception ex) {
 				Messages.Remove(thinkingMsg);
 				AddMessage(ChatItem.CreateSystemMessage($"Error: {ex.Message}", isError: true));
 			}
+		}
+
+		public void AddAIResponseToChat(string response) {
+			var msg = ChatItem.CreateAiMessage(response);
+			foreach (var blk in msg.CodeBlocks)
+				blk.Actions = Options.CodeblockActions.Where(a => a.IsVisible(blk)).Select(a => new BlockAction(a, blk)).ToArray();
+
+			AddMessage(msg);
 		}
 
 		private string CurTargetTextForAI() {

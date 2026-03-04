@@ -62,7 +62,7 @@ namespace TestWinUIApp {
 #if WPF
 		private void MainWindow_Loaded(object sender, RoutedEventArgs e) {
 #else
-		private void Window_Activated(object sender, WindowActivatedEventArgs args) {
+		private void Window_Activated(object sender, WindowActivatedEventArgs e) {
 #endif
 			_isLoaded = true;
 			this.GeneratorAgentOpts = new OurOptions();
@@ -72,9 +72,14 @@ namespace TestWinUIApp {
 				var data = JsonConvert.DeserializeObject<AIUserConfig>(File.ReadAllText(json_config));
 				ucAi.AiControl.ImportData(data);
 			}
-			var pos = Array.IndexOf(Environment.GetCommandLineArgs(),"--load");
+			var args = Environment.GetCommandLineArgs();
+			var pos = Array.IndexOf(args,"--load");
 			if (pos > -1) 
-				txtTest.Text = File.ReadAllText(Environment.GetCommandLineArgs()[pos+1]);
+				txtTest.Text = File.ReadAllText(args[pos+1]);
+
+			pos = Array.IndexOf(args,"--add_ai_msg_from_file");
+			if (pos > -1) 
+				ucAi.AddAIResponseToChat(File.ReadAllText(args[pos+1]));
 			ucAi.ExpanderControl.IsExpanded = true;
 		}
 
@@ -83,6 +88,7 @@ namespace TestWinUIApp {
 				return;
 			AIOptions newAgent = agentCombo.SelectedItem?.ToString()?.Contains("Explain") == true ? QueryAgentOpts : GeneratorAgentOpts;
 			ucAi.Configure(newAgent);
+			
 		}
 
 		private async void ExplainRegex_Click(object sender, RoutedEventArgs e) {
