@@ -88,9 +88,20 @@
                                             HorizontalAlignment="{Binding Alignment}"
                                             MaxWidth="500">
                                         <StackPanel>
-                                            <TextBlock Text="{Binding Sender}" FontWeight="SemiBold"
-                                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                                       Foreground="{Binding SenderColor}"/>
+                                              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Sender}" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                                                  Style="{StaticResource CaptionTextBlockStyle}"
+                                                                                  Foreground="{Binding SenderColor}"/>
+                                                    <Button Content="📋"
+                                                            Margin="6,0,0,0"
+                                                            Padding="2"
+                                                            MinWidth="0"
+                                                            Background="Transparent"
+                                                            BorderThickness="0"
+                                                            Click="CopyResponse_Click"
+                                                            ToolTip="Copy full response"
+                                                            Visibility="{Binding IsAI, Converter={StaticResource boolNullVisibilityCollapsedConverter}}"/>
+                                                </StackPanel>
                                          <mdxaml:MarkdownScrollViewer Markdown="{Binding Message}"
                                                                                               VerticalScrollBarVisibility="Disabled"
                                                                                               Background="Transparent"

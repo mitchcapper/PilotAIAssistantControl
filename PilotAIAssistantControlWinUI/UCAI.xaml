@@ -94,9 +94,23 @@
                                             HorizontalAlignment="{Binding Alignment}"
                                             MaxWidth="500">
                                         <StackPanel>
-                                            <TextBlock Text="{Binding Sender}" FontWeight="SemiBold"
-                                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                                       Foreground="{Binding SenderColor}"/>
+                                              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Sender}" FontWeight="SemiBold"
+                                                                                  Style="{StaticResource CaptionTextBlockStyle}"
+                                                                                  Foreground="{Binding SenderColor}"/>
+                                                    <Button Content="📋"
+                                                            Margin="6,0,0,0"
+                                                            Padding="2"
+                                                            MinWidth="0"
+                                                            Background="Transparent"
+                                                            BorderThickness="0"
+                                                            Click="CopyResponse_Click"
+                                                            Visibility="{Binding IsAI, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">
+                                                        <ToolTipService.ToolTip>
+                                                            <ToolTip Content="Copy full response"/>
+                                                        </ToolTipService.ToolTip>
+                                                    </Button>
+                                             </StackPanel>
                                             <local:MarkdownViewer Markdown="{Binding Message}" />
                                             <ItemsControl ItemsSource="{Binding CodeBlocks}"
                                                           Visibility="{Binding HasCodeBlocks, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">

@@ -19,6 +19,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Input;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.System;
 #endif
 
@@ -124,6 +125,22 @@ namespace PilotAIAssistantControl {
 					// Prevent focus change on Tab key
 					//e.Handled = true;
 				}
+#endif
+		}
+
+		private void CopyResponse_Click(object sender, RoutedEventArgs e) {
+			if (sender is not Button button || button.DataContext is not ChatItem item)
+				return;
+
+			if (string.IsNullOrWhiteSpace(item.Message))
+				return;
+
+#if WPF
+			Clipboard.SetText(item.Message);
+#else
+			var package = new DataPackage();
+			package.SetText(item.Message);
+			Clipboard.SetContent(package);
 #endif
 		}
 #if WPF
@@ -554,7 +571,7 @@ namespace PilotAIAssistantControl {
 				return;
 
 			_hasAutoConnectedOnExpand = true;
-			await Task.WhenAny(Task.Delay(5000), ControlLoadedAndDataImported.Task);
+			await await Task.WhenAny(Task.Delay(5000), ControlLoadedAndDataImported.Task);
 			if (vm.SelectedPendingProvider?.UserData?.ModelId != null)
 				SaveSettings_Click(default, default);
 

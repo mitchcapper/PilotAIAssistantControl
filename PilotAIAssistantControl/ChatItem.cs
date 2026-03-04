@@ -24,6 +24,7 @@ namespace PilotAIAssistantControl {
 		public HorizontalAlignment Alignment { get; set; } = HorizontalAlignment.Left;
 		public List<CodeBlock> CodeBlocks { get; set; } = new();
 		public bool HasCodeBlocks => CodeBlocks.Count > 0;
+		public bool IsAI => Sender == "AI Assistant";
 
 		// --- Factory Methods ---
 
