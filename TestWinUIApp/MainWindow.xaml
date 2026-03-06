@@ -60,7 +60,10 @@
 					<ColumnDefinition Width="Auto"/>
 				</Grid.ColumnDefinitions>
 				<TextBox Name="txtRegex" Margin="10" AcceptsReturn="True" />
-				<Button Grid.Column="1" Content="❓ Explain" Click="ExplainRegex_Click" VerticalAlignment="Top" Margin="0,10,10,0"/>
+				<StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="0,10,10,0" Spacing="8">
+					<Button Content="Toggle theme" Click="ToggleTheme_Click"/>
+					<Button Content="❓ Explain" Click="ExplainRegex_Click"/>
+				</StackPanel>
 			</Grid>
 			<TextBox Margin="10" Name="txtTest" Grid.Row="1" AcceptsReturn="True">
 

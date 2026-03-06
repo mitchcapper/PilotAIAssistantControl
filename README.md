@@ -6,7 +6,9 @@ The included Expandable control allows it to easily collapse down to 40 pixels w
 
 You can optionally provide a "reference text/document" which can be a longer document the user is working on and allow the user to control how much(if any) of it to send along.
 
-Note this is not yet published as a nuget package recommend cloning this repo, then in your solution add a project reference to the project.  
+The uses standard WPF 9 styling and controls and is fully compatible with native light/dark theming.
+
+Note this is not yet published as a nuget package recommend cloning this repo, then in your solution add a project reference to the project.
 
 ## Screenshots
 

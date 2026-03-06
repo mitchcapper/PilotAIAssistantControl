@@ -64,6 +64,8 @@ namespace TestWinUIApp {
 #else
 		private void Window_Activated(object sender, WindowActivatedEventArgs e) {
 #endif
+			if (_isLoaded)
+				return;
 			_isLoaded = true;
 			this.GeneratorAgentOpts = new OurOptions();
 			this.QueryAgentOpts = new SimpleExplainerOptions();
@@ -95,6 +97,14 @@ namespace TestWinUIApp {
 			agentCombo.SelectedIndex = 1; // Switch to Explain agent
 			await ucAi.SendMessage($"`{txtRegex.Text}`");
 		}
+
+#if !WPF
+		private void ToggleTheme_Click(object sender, RoutedEventArgs e) {
+			if (Content is FrameworkElement root) {
+				root.RequestedTheme = root.ActualTheme == ElementTheme.Dark ? ElementTheme.Light : ElementTheme.Dark;
+			}
+		}
+#endif
 
 
 	}

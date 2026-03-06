@@ -8,12 +8,17 @@ using System.ComponentModel;
 using System.Diagnostics;
 
 
+
+
 #if WPF
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 #else
+using Microsoft.UI;
+using Windows.UI;
+
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -61,7 +66,48 @@ namespace PilotAIAssistantControl {
 		public UCAI() {
 			DataContext = vm;
 			InitializeComponent();
+			HookThemeChangeHandlers();
 			UpdateConnectionStatus(false, default, default);
+		}
+
+		private void HookThemeChangeHandlers() {
+			Unloaded += UCAI_Unloaded;
+#if WPF
+			SystemParameters.StaticPropertyChanged += SystemParameters_StaticPropertyChanged;
+#else
+			ActualThemeChanged += UCAI_ActualThemeChanged;
+#endif
+		}
+
+		private void UCAI_Unloaded(object sender, RoutedEventArgs e) {
+#if WPF
+			SystemParameters.StaticPropertyChanged -= SystemParameters_StaticPropertyChanged;
+#else
+			ActualThemeChanged -= UCAI_ActualThemeChanged;
+#endif
+			Unloaded -= UCAI_Unloaded;
+		}
+
+#if WPF
+		private void SystemParameters_StaticPropertyChanged(object? sender, PropertyChangedEventArgs e) {
+			RefreshExistingMessageTheme();
+		}
+#else
+		private void UCAI_ActualThemeChanged(FrameworkElement sender, object args) {
+			ChatItem.IsDarkTheme = ActualTheme == ElementTheme.Dark;
+			RefreshExistingMessageTheme();
+		}
+#endif
+
+		private void RefreshExistingMessageTheme() {
+			if (Messages.Count == 0)
+				return;
+
+			for (int i = 0; i < Messages.Count; i++) {
+				Messages[i] = Messages[i].CreateRethemedCopy();
+			}
+
+			UpdateConnectionStatus(vm.Provider != null, vm.Provider?.Name, vm.Provider?.UserData?.ModelId);
 		}
 
 
@@ -480,20 +526,19 @@ namespace PilotAIAssistantControl {
 			if (!String.IsNullOrWhiteSpace(provider))
 				ShowStatus($"✓ Connected to {provider} using {vm.Provider.UserData.ModelId}!", isError: false);
 			if (connected) {
-#if WPF
-				TxtCurrentModel.Foreground = new SolidColorBrush(Colors.Green);
-#else
-				TxtCurrentModel.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Green);
-#endif
+				ApplyConnectionStyle(true);
 				TxtCurrentModel.Text = $"{provider}: {model}";
 			} else {
-#if WPF
-				TxtCurrentModel.Foreground = new SolidColorBrush(Colors.Gray);
-#else
-				TxtCurrentModel.Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gray);
-#endif
+				ApplyConnectionStyle(false);
 				TxtCurrentModel.Text = "Not Connected";
 			}
+		}
+
+		private void ApplyConnectionStyle(bool connected) {
+			// Use XAML-defined styles with dynamic/theme resources so colors auto-update on theme change.
+			string styleKey = connected ? "StatusConnected" : "StatusDisconnected";
+			if (Resources.Contains(styleKey) && Resources[styleKey] is Style style)
+				TxtCurrentModel.Style = style;
 		}
 
 		#endregion
@@ -586,6 +631,10 @@ namespace PilotAIAssistantControl {
 			if (isFirstLoad)
 				vm.PropertyChanged += vmPropChanged;
 			isFirstLoad = false;
+#if !WPF
+			ChatItem.IsDarkTheme = ActualTheme == ElementTheme.Dark;
+#endif
+			RefreshExistingMessageTheme();
 			var ind = ourTabControl.SelectedIndex;
 #if !WPF
 			if (ourTabControl.SelectedItem == null)

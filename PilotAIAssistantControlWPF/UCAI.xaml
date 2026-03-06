@@ -26,9 +26,17 @@
         <Style x:Key="StatusText" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
+        <Style x:Key="StatusConnected" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+        </Style>
+        <Style x:Key="StatusDisconnected" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+        </Style>
         <!-- Chat bubbles need specific colors for context -->
         <Style x:Key="ChatBubbleUser" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource AccentFillColorDefaultBrush}"/>
+			<Setter Property="Background" Value="{DynamicResource TextFillColorInverseBrush}"/>
             <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}"/>
             <Setter Property="Padding" Value="10"/>
             <Setter Property="Margin" Value="20,4,4,4"/>
@@ -69,26 +77,31 @@
                     <Border Grid.Row="0" Style="{StaticResource SectionCard}">
                         <StackPanel>
                             <TextBlock Name="TxtCurrentModel" VerticalAlignment="Center"
-                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontWeight="Bold"/>
+                                           Style="{StaticResource StatusDisconnected}"/>
                             <StackPanel Orientation="Horizontal">
                                 <Button Content="🗑 Clear" Click="ClearChat_Click"
                                         ToolTip="Clear conversation history"/>
-                                <Button Content="⚙ Settings" Click="GoToSettings_Click"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
                     <!-- Chat Messages Area with Markdown Support -->
                     <ScrollViewer Grid.Row="1" Name="ChatScrollViewer" VerticalScrollBarVisibility="Auto"
-                                  Background="{DynamicResource LayerFillColorDefaultBrush}">
+                                  Background="{DynamicResource LayerFillColorDefaultBrush}"
+                                  Padding="2">
                         <ItemsControl Name="ChatMessages" ItemsSource="{Binding Messages}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Border Background="{Binding BackgroundColor}"
+                                            BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="12"
+                                            Padding="12,10"
+                                            Margin="6,4"
                                             HorizontalAlignment="{Binding Alignment}"
-                                            MaxWidth="500">
+                                            MaxWidth="560">
                                         <StackPanel>
-                                              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                              <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,6">
                                                     <TextBlock Text="{Binding Sender}" FontWeight="SemiBold" VerticalAlignment="Center"
                                                                                   Style="{StaticResource CaptionTextBlockStyle}"
                                                                                   Foreground="{Binding SenderColor}"/>

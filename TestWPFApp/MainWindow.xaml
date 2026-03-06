@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:ThemeToggle="clr-namespace:WPFNativeThemeToggleControl;assembly=WPFNativeThemeToggleControl"
         xmlns:pia="clr-namespace:PilotAIAssistantControl;assembly=PilotAIAssistantControlWPF" 
         mc:Ignorable="d"
         Title="MainWindow" Height="450" Width="800">
@@ -51,7 +52,11 @@
 					<ColumnDefinition Width="Auto"/>
 				</Grid.ColumnDefinitions>
 				<TextBox Name="txtRegex" Margin="10" />
-				<Button Grid.Column="1" Content="❓ Explain" Click="ExplainRegex_Click" VerticalAlignment="Top" Margin="0,10,10,0"/>
+				<StackPanel Orientation="Horizontal" Grid.Column="1">
+					<ThemeToggle:ThemeToggleControl  Margin="8"  CurrentThemeStr="Dark" VerticalAlignment="Top" />
+					<Button Grid.Column="1" Content="❓ Explain" Click="ExplainRegex_Click" VerticalAlignment="Top" Margin="8"/>
+				</StackPanel>
+				
 			</Grid>
 			<TextBox Margin="10" Name="txtTest" Grid.Row="1">
 

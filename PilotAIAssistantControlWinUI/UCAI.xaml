@@ -25,21 +25,49 @@
         <Style x:Key="StatusText" TargetType="TextBlock" BasedOn="{StaticResource BodyTextBlockStyle}">
             <Setter Property="TextWrapping" Value="Wrap"/>
         </Style>
-        <!-- Chat bubbles need specific colors for context -->
-        <Style x:Key="ChatBubbleUser" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource AccentFillColorDefaultBrush}"/>
-            <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}"/>
-            <Setter Property="Padding" Value="10"/>
-            <Setter Property="Margin" Value="20,4,4,4"/>
-            <Setter Property="HorizontalAlignment" Value="Right"/>
+        <!-- Chat bubble styles - use {ThemeResource} so backgrounds auto-update on theme change -->
+        <Style x:Key="ChatBubbleBase" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="Margin" Value="6,4"/>
+            <Setter Property="MaxWidth" Value="560"/>
         </Style>
-        <Style x:Key="ChatBubbleAI" TargetType="Border">
-            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
-            <Setter Property="CornerRadius" Value="{ThemeResource ControlCornerRadius}"/>
-            <Setter Property="Padding" Value="10"/>
-            <Setter Property="Margin" Value="4,4,20,4"/>
+        <Style x:Key="ChatBubbleUser" TargetType="Border" BasedOn="{StaticResource ChatBubbleBase}">
+			<Setter Property="Background" Value="{ThemeResource TextFillColorInverseBrush}"/>
+			<Setter Property="HorizontalAlignment" Value="Right"/>
+        </Style>
+        <Style x:Key="ChatBubbleAI" TargetType="Border" BasedOn="{StaticResource ChatBubbleBase}">
+            <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorSecondaryBrush}"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
         </Style>
+        <Style x:Key="ChatBubbleSystemWarning" TargetType="Border" BasedOn="{StaticResource ChatBubbleBase}">
+            <Setter Property="Background" Value="{ThemeResource InfoBarWarningSeverityBackgroundBrush}"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
+        <Style x:Key="ChatBubbleSystemError" TargetType="Border" BasedOn="{StaticResource ChatBubbleBase}">
+            <Setter Property="Background" Value="{ThemeResource InfoBarErrorSeverityBackgroundBrush}"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+        </Style>
+
+        <!-- Converter: maps ChatItem to the appropriate bubble style -->
+        <local:ChatItemToBubbleStyleConverter x:Key="chatBubbleStyleConverter"
+            UserStyle="{StaticResource ChatBubbleUser}"
+            AiStyle="{StaticResource ChatBubbleAI}"
+            SystemWarningStyle="{StaticResource ChatBubbleSystemWarning}"
+            SystemErrorStyle="{StaticResource ChatBubbleSystemError}" />
+
+        <!-- Status text styles for connection indicator -->
+        <Style x:Key="StatusConnected" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{ThemeResource AccentTextFillColorPrimaryBrush}"/>
+        </Style>
+        <Style x:Key="StatusDisconnected" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="{ThemeResource TextFillColorSecondaryBrush}"/>
+        </Style>
+
         <!-- Section card style -->
         <Style x:Key="SectionCard" TargetType="Border">
             <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
@@ -72,32 +100,30 @@
                     <Border Grid.Row="0" Style="{StaticResource SectionCard}">
                         <StackPanel>
                             <TextBlock Name="TxtCurrentModel" VerticalAlignment="Center"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontWeight="Bold"/>
+                                           Style="{StaticResource StatusDisconnected}"/>
                             <StackPanel Orientation="Horizontal">
                                 <Button Content="🗑 Clear" Click="ClearChat_Click">
 									<ToolTipService.ToolTip>
 										<ToolTip Content="Clear conversation history"/>
 									</ToolTipService.ToolTip>
 								</Button>
-                                <Button Content="⚙ Settings" Click="GoToSettings_Click"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>
 
                     <!-- Chat Messages Area with Markdown Support -->
                     <ScrollViewer Grid.Row="1" Name="ChatScrollViewer" VerticalScrollBarVisibility="Auto"
-                                  Background="{ThemeResource LayerFillColorDefaultBrush}">
+                                  Background="{ThemeResource LayerFillColorDefaultBrush}"
+                                  Padding="2">
                         <ItemsControl Name="ChatMessages" ItemsSource="{Binding Messages}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Background="{Binding BackgroundColor}"
-                                            HorizontalAlignment="{Binding Alignment}"
-                                            MaxWidth="500">
+                                    <Border Style="{Binding Converter={StaticResource chatBubbleStyleConverter}}">
                                         <StackPanel>
-                                              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                              <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,6">
                                                     <TextBlock Text="{Binding Sender}" FontWeight="SemiBold"
                                                                                   Style="{StaticResource CaptionTextBlockStyle}"
-                                                                                  Foreground="{Binding SenderColor}"/>
+                                                                                  Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                                                     <Button Content="📋"
                                                             Margin="6,0,0,0"
                                                             Padding="2"
@@ -111,7 +137,11 @@
                                                         </ToolTipService.ToolTip>
                                                     </Button>
                                              </StackPanel>
-                                            <local:MarkdownViewer Markdown="{Binding Message}" />
+                                            <local:MarkdownViewer Markdown="{Binding Message}"
+                                                Foreground="{ThemeResource TextFillColorPrimaryBrush}"
+                                                CodeBackgroundBrush="{ThemeResource ControlFillColorDefaultBrush}"
+                                                CodeForegroundBrush="{ThemeResource TextFillColorPrimaryBrush}"
+                                                CodeBorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}" />
                                             <ItemsControl ItemsSource="{Binding CodeBlocks}"
                                                           Visibility="{Binding HasCodeBlocks, Converter={StaticResource boolNullVisibilityCollapsedConverter}}">
                                                 <ItemsControl.ItemTemplate>
