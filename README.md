@@ -1,4 +1,7 @@
-# PilotAiAssistControl
+# PilotAIAssistantControl
+[![Build](https://github.com/mitchcapper/PilotAIAssistantControl/actions/workflows/build.yml/badge.svg)](https://github.com/mitchcapper/PilotAIAssistantControl/actions/workflows/build.yml)
+[![PilotAIAssistantControl](https://img.shields.io/nuget/v/PilotAIAssistantControlWPF.svg?style=flat&label=PilotAIAssistantControl)](https://www.nuget.org/packages/PilotAIAssistantControlWPF/)
+
 
 A WPF (and beta WinUI3) user control that provides an AI chat assistant interface with support for multiple AI providers (GitHub Copilot, Google Gemini, Anthropic, OpenAI, GitHub Models, and custom or local providers like ollama that support OpenAI API endpoints). It is meant to be a very quick way to bolt on an AI agent to any application you have.  You can provide context and direct action buttons inline with the AI responses.  It includes both a standalone chat control and an expandable sidebar version.  It has integrated support for discovery of local existing GitHub Copilot tokens (ie from vscode) and also integrates a login flow for users that don't already have it present.
 
@@ -21,7 +24,7 @@ Note this is not yet published as a nuget package recommend cloning this repo, t
 
 <!-- TOC -->
 
-- [PilotAiAssistControl](#pilotaiassistcontrol)
+- [PilotAIAssistantControl](#PilotAIAssistantControl)
 	- [Screenshots](#screenshots)
 	- [Installation](#installation)
 	- [Quick Start](#quick-start)
@@ -52,7 +55,7 @@ Note this is not yet published as a nuget package recommend cloning this repo, t
 ## Installation
 
 ```
-Install-Package PilotAiAssistControlWPF
+Install-Package PilotAIAssistantControlWPF
 ```
 
 ## Quick Start

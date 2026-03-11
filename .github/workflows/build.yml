@@ -1,0 +1,48 @@
+name: Build and Pack NuGet
+
+on:
+  push:
+    branches-ignore:
+      - trash
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: |
+          9.0.x
+          10.0.x
+
+    - name: Restore WinUI package
+      run: dotnet restore PilotAIAssistantControlWinUI/PilotAIAssistantControlWinUI.csproj
+
+    - name: Restore WPF package
+      run: dotnet restore PilotAIAssistantControlWPF/PilotAIAssistantControlWPF.csproj
+
+    - name: Build WinUI
+      run: dotnet build PilotAIAssistantControlWinUI/PilotAIAssistantControlWinUI.csproj --configuration Release --no-restore
+
+    - name: Build WPF
+      run: dotnet build PilotAIAssistantControlWPF/PilotAIAssistantControlWPF.csproj --configuration Release --no-restore
+
+    - name: Pack WinUI
+      run: dotnet pack PilotAIAssistantControlWinUI/PilotAIAssistantControlWinUI.csproj --configuration Release --no-build --output ${{ github.workspace }}/nupkg
+
+    - name: Pack WPF
+      run: dotnet pack PilotAIAssistantControlWPF/PilotAIAssistantControlWPF.csproj --configuration Release --no-build --output ${{ github.workspace }}/nupkg
+
+    - name: Upload NuGet Package Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: PilotAIAssistantControl-NuGet
+        path: ${{ github.workspace }}/nupkg/*.nupkg
+        if-no-files-found: error
