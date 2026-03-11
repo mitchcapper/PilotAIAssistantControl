@@ -2,6 +2,19 @@
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
   <PropertyGroup>
-    <PackageVersion>1.0.2</PackageVersion>
+    <PackageVersion>1.0.3</PackageVersion>
   </PropertyGroup>
+  <PropertyGroup>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  <!-- Common NuGet package properties -->
+    <Authors Condition="'$(Authors)' == ''">MitchCapper</Authors>
+    <PackageProjectUrl Condition="'$(PackageProjectUrl)' == ''">https://github.com/MitchCapper/PilotAIAssistantControl</PackageProjectUrl>
+    <RepositoryUrl Condition="'$(RepositoryUrl)' == ''">https://github.com/MitchCapper/PilotAIAssistantControl</RepositoryUrl>
+ 
+    <Copyright Condition="'$(Copyright)' == ''">Copyright © MitchCapper $([System.DateTime]::Now.Year)</Copyright>
+    <PackageTags Condition="'$(PackageTags)' == ''">AI,AI Agent,windows,winui,wpf</PackageTags>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="../README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
 </Project>

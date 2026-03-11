@@ -80,7 +80,7 @@ namespace PilotAIAssistantControl {
 		}
 
 		private void UCAI_Unloaded(object sender, RoutedEventArgs e) {
-#if WPF
+#if WPF 
 			SystemParameters.StaticPropertyChanged -= SystemParameters_StaticPropertyChanged;
 #else
 			ActualThemeChanged -= UCAI_ActualThemeChanged;
@@ -537,7 +537,11 @@ namespace PilotAIAssistantControl {
 		private void ApplyConnectionStyle(bool connected) {
 			// Use XAML-defined styles with dynamic/theme resources so colors auto-update on theme change.
 			string styleKey = connected ? "StatusConnected" : "StatusDisconnected";
+     #if WPF
 			if (Resources.Contains(styleKey) && Resources[styleKey] is Style style)
+		#else
+			if (Resources.TryGetValue(styleKey, out var resource) && resource is Style style)
+		#endif
 				TxtCurrentModel.Style = style;
 		}
 

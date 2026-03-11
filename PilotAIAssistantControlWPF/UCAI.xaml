@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:PilotAIAssistantControl"
-             xmlns:mdxaml="clr-namespace:MdXaml;assembly=MdXaml"
+             xmlns:mdxamls="clr-namespace:MdXaml.SyntaxHigh;assembly=MdXaml.SyntaxHigh"
 			 Loaded="UserControl_Loaded"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="400">
@@ -115,7 +115,7 @@
                                                             ToolTip="Copy full response"
                                                             Visibility="{Binding IsAI, Converter={StaticResource boolNullVisibilityCollapsedConverter}}"/>
                                                 </StackPanel>
-                                         <mdxaml:MarkdownScrollViewer Markdown="{Binding Message}"
+                                         <mdxamls:MarkdownScrollViewer Markdown="{Binding Message}"
                                                                                               VerticalScrollBarVisibility="Disabled"
                                                                                               Background="Transparent"
                                                                                               MarkdownStyleName="Sasabune"
