@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+#pragma warning disable CS8603 // Possible null reference return.
+#pragma warning disable CS8604 // Possible null reference argument.
 
 namespace PilotAIAssistantControl {
 	public class AiService {
@@ -15,6 +17,8 @@ namespace PilotAIAssistantControl {
 		private IChatCompletionService? _chatService;
 		private Kernel? _kernel;
 		private HttpClient? _httpClient; // Keep reference to avoid disposal
+		private CopilotTokenRefreshHandler? _refreshHandler; // Handler for automatic token refresh
+		private IAIModelProvider? _currentProvider; // Store provider reference for token refresh
 		private ChatHistory _chatHistory = new(); // Persistent conversation history
 		public bool IsConfigured => _chatService != null;
 
@@ -29,9 +33,33 @@ namespace PilotAIAssistantControl {
 			// Dispose previous HttpClient if any
 			_httpClient?.Dispose();
 			_httpClient = null;
+			_refreshHandler = null;
+			_currentProvider = provider;
 
 			var builder = Kernel.CreateBuilder();
-			_httpClient = new HttpClient();
+
+			// Check if provider supports automatic token refresh
+			if (provider is ISupportsTokenRefresh refreshSupporter) {
+				// Create HttpClient with refresh handler
+				_refreshHandler = new CopilotTokenRefreshHandler();
+				_refreshHandler.RefreshTokenCallback = async () => {
+					try {
+						var success = await refreshSupporter.RefreshTokenAsync();
+						if (success) {
+							DebugAction?.Invoke("[Token Refresh] Token refreshed successfully");
+						}
+						return success;
+					} catch (Exception ex) {
+						DebugAction?.Invoke($"[Token Refresh] Failed: {ex.Message}");
+						return false;
+					}
+				};
+				_refreshHandler.GetCurrentToken = () => refreshSupporter.CurrentToken;
+				_httpClient = new HttpClient(_refreshHandler);
+			} else {
+				_httpClient = new HttpClient();
+			}
+
 			foreach (var header in provider.HTTPHeadersToAdd)
 				_httpClient.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
 

@@ -17,6 +17,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)ChatItem.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ChatItemToBubbleStyleConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CodeBlock.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CopilotAuthDb.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CopilotTokenHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)GithubCopilotProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MarkdownViewer.cs" />

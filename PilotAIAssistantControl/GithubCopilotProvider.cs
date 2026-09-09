@@ -5,6 +5,9 @@ using System.Linq;
 using System.Threading.Tasks;
 
 #pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+#pragma warning disable CS8604 // Possible null reference argument.
+#pragma warning disable CS8601 // Possible null reference assignment.
 
 namespace PilotAIAssistantControl {
 	public class CoPilotUserData : IAIModelProvider.GenericProviderUserData {
@@ -13,7 +16,7 @@ namespace PilotAIAssistantControl {
 	/// <summary>
 	/// GitHub Copilot provider with auto-discovery and token exchange.
 	/// </summary>
-	public class GithubCopilotProvider : BaseAiModelProvider<CoPilotUserData> {
+	public class GithubCopilotProvider : BaseAiModelProvider<CoPilotUserData>, ISupportsTokenRefresh {
 
 		/// <summary>
 		/// shortlived session token acquired using oauth token
@@ -124,7 +127,7 @@ namespace PilotAIAssistantControl {
 			}
 		}
 
-		public string AutoDiscoverResult {
+		public string? AutoDiscoverResult {
 			get; set => Set(ref field, value);
 		}
 
@@ -146,5 +149,29 @@ namespace PilotAIAssistantControl {
 
 			return SessionToken.Token;
 		}
+
+		#region ISupportsTokenRefresh
+
+		/// <summary>
+		/// Gets the current valid API token, or null if not available.
+		/// </summary>
+		public string? CurrentToken => SessionToken?.Token;
+
+		/// <summary>
+		/// Attempts to refresh the session token. Called automatically when a 401 error is received.
+		/// </summary>
+		/// <returns>True if token was refreshed successfully, false otherwise.</returns>
+		public async Task<bool> RefreshTokenAsync() {
+			try {
+				// Force token refresh by clearing the current session token
+				SessionToken = null;
+				await EnsureValidSessionToken();
+				return SessionToken != null && !SessionToken.IsExpired;
+			} catch (Exception) {
+				return false;
+			}
+		}
+
+		#endregion
 	}
 }

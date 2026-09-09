@@ -17,9 +17,13 @@
 
 	<ItemGroup>
 		<PackageReference Include="MdXaml.SyntaxHigh" Version="2.0.0-pre202603081301" />
-		<PackageReference Include="Microsoft.SemanticKernel" Version="1.73.0" />
+		<!-- Reads the Copilot auth.db. Deliberately the default e_sqlite3 bundle rather than
+		     SQLitePCLRaw.bundle_winsqlite3: the winsqlite3 provider calls sqlite3_win32_set_directory,
+		     which the Windows App Certification Kit rejects for packaged/Store app types. -->
+		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+		<PackageReference Include="Microsoft.SemanticKernel" Version="1.80.1" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-		<PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.3" />
+		<PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.12" />
 	</ItemGroup>
 
 	<Import Project="..\PilotAIAssistantControl\PilotAIAssistantControl.projitems" Label="Shared" />

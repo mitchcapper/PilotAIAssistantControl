@@ -38,7 +38,34 @@ namespace PilotAIAssistantControl {
 			public string? Description { get; set; }
 			public bool IsPreview { get; set; }
 			public bool IsBeta { get; set; }
-			public double? TokenMultiplier { get; set; }
+			/// <summary>
+			/// Relative cost band from model_picker_price_category: low / medium / high / very_high.
+			/// Replaces the old billing.multiplier, which GitHub retired when Copilot moved to
+			/// usage-based billing. Requires the 2026-08-01 (or later) API version.
+			/// </summary>
+			public string? PriceCategory { get; set; }
+			/// <summary>
+			/// Capability band from model_picker_category: lightweight / versatile / powerful.
+			/// </summary>
+			public string? PickerCategory { get; set; }
+			/// <summary>
+			/// Price per <see cref="PriceBatchSize"/> input tokens, from billing.token_prices.default.
+			/// </summary>
+			public double? InputPrice { get; set; }
+			/// <summary>
+			/// Price per <see cref="PriceBatchSize"/> output tokens, from billing.token_prices.default.
+			/// </summary>
+			public double? OutputPrice { get; set; }
+			/// <summary>
+			/// Token count the prices above are quoted per (GitHub currently returns 1,000,000).
+			/// </summary>
+			public long? PriceBatchSize { get; set; }
+			/// <summary>
+			/// Endpoints this model can be called on (e.g. /chat/completions, /responses, /v1/messages).
+			/// Models that do not list /chat/completions cannot be used by the Semantic Kernel
+			/// OpenAI connector and are filtered out of the picker.
+			/// </summary>
+			public List<string> SupportedEndpoints { get; set; } = new();
 			public string? Vendor { get; set; }
 			public string? Family { get; set; }
 			public int? MaxInputTokens { get; set; }
@@ -58,8 +85,13 @@ namespace PilotAIAssistantControl {
 				if (!string.IsNullOrEmpty(Family))
 					sb.AppendLine($"Family: {Family}");
 
-				if (TokenMultiplier.HasValue)
-					sb.AppendLine($"Token Rate: {TokenMultiplier.Value}x");
+				if (!string.IsNullOrEmpty(PriceCategory))
+					sb.AppendLine($"Price: {FormatPriceCategory(PriceCategory)}");
+
+				if (InputPrice.HasValue && OutputPrice.HasValue && PriceBatchSize is > 0) {
+					var per = PriceBatchSize.Value >= 1_000_000 ? $"{PriceBatchSize.Value / 1_000_000}M" : PriceBatchSize.Value.ToString("N0");
+					sb.AppendLine($"Rate: {InputPrice.Value:G} in / {OutputPrice.Value:G} out per {per} tokens");
+				}
 
 				if (MaxInputTokens.HasValue)
 					sb.AppendLine($"Max Input: {MaxInputTokens.Value:N0} tokens");
@@ -85,15 +117,9 @@ namespace PilotAIAssistantControl {
 
 				var tags = new List<string>();
 
-				// Show token multiplier first (this is the "cost")
-				if (TokenMultiplier.HasValue) {
-					if (TokenMultiplier.Value == 0)
-						tags.Add("free");
-					else if (TokenMultiplier.Value == 1.0)
-						tags.Add("1x");
-					else
-						tags.Add($"{TokenMultiplier.Value}x");
-				}
+				// Show the relative price band first (this is the "cost")
+				if (!string.IsNullOrEmpty(PriceCategory))
+					tags.Add(FormatPriceCategory(PriceCategory));
 
 				if (IsBeta) tags.Add("Beta");
 				else if (IsPreview) tags.Add("Preview");
@@ -106,6 +132,22 @@ namespace PilotAIAssistantControl {
 
 				return sb.ToString();
 			}
+
+			/// <summary>
+			/// Turns the raw price category ("very_high") into something displayable ("very high").
+			/// </summary>
+			internal static string FormatPriceCategory(string? category) => category?.Replace('_', ' ') ?? string.Empty;
+
+			/// <summary>
+			/// Sort rank for the price bands, cheapest first. Unknown categories sort last.
+			/// </summary>
+			internal static int PriceCategoryRank(string? category) => category switch {
+				"low" => 0,
+				"medium" => 1,
+				"high" => 2,
+				"very_high" => 3,
+				_ => 4
+			};
 
 			public override string ToString() => GetDisplayName();
 		}
@@ -334,13 +376,23 @@ namespace PilotAIAssistantControl {
 		/// <summary>
 		/// Attempts to discover the Copilot OAuth token from known config locations.
 		/// Checks:
-		/// 1. %LOCALAPPDATA%\github-copilot\apps.json (JetBrains IDEs)
-		/// 2. %APPDATA%\github-copilot\hosts.json (older format)
+		/// 1. %LOCALAPPDATA%\github-copilot\auth.db (current clients)
+		/// 2. %LOCALAPPDATA%\github-copilot\apps.json (JetBrains IDEs, legacy)
+		/// 3. %APPDATA%\github-copilot\hosts.json (older format)
 		/// </summary>
 		/// <returns>The OAuth token if found, null otherwise.</returns>
 		public static string? DiscoverToken() {
-			// Primary location: JetBrains IDEs
 			var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+			// Current clients store tokens here. Check it first - installs that have migrated leave
+			// the legacy JSON files behind with whatever token they last held, so preferring the
+			// legacy path would hand back a stale token on an otherwise healthy machine.
+			var authDbPath = Path.Combine(localAppData, "github-copilot", "auth.db");
+			var authDbToken = CopilotAuthDb.TryReadToken(authDbPath);
+			if (!string.IsNullOrEmpty(authDbToken))
+				return authDbToken;
+
+			// Legacy location: JetBrains IDEs and older clients
 			var appsJsonPath = Path.Combine(localAppData, "github-copilot", "apps.json");
 
 			if (File.Exists(appsJsonPath)) {
@@ -579,11 +631,21 @@ namespace PilotAIAssistantControl {
 			return await ExchangeOAuthForApiTokenAsync(oauthToken, proxy, enterpriseUri);
 
 		}
+		/// <summary>
+		/// API version that exposes the current billing shape. On the older 2025-05-01 version the
+		/// service still answers, but reports billing.multiplier = 1 for every model along with a
+		/// "client_version_deprecated" warning; 2026-08-01 replaces that with
+		/// model_picker_price_category and billing.token_prices. Verified working for the token
+		/// exchange, /models and /chat/completions.
+		/// </summary>
+		internal const string GitHubApiVersion = "2026-08-01";
+
 		internal static KeyValuePair<string, string>[] HeadersToAdd = [
-				new("User-Agent", "GitHubCopilotChat/0.24.2025012401"),
+				new("User-Agent", "GitHubCopilotChat/0.26.7"),
 				new("Copilot-Integration-Id", "vscode-chat"),
 				new("Editor-Version", "vscode/1.103.2"),
-				new("x-github-api-version", "2025-05-01")
+				new("Editor-Plugin-Version", "copilot-chat/0.26.7"),
+				new("x-github-api-version", GitHubApiVersion)
 			];
 		/// <summary>
 		/// Fetches available models from the GitHub Copilot API.
@@ -653,15 +715,48 @@ namespace PilotAIAssistantControl {
 									continue; // Skip models not available in picker
 							}
 
-							// Parse billing info (from billing.multiplier and billing.is_premium)
-							if (modelElement["billing"] is JObject billingElement) {
-								if (billingElement["multiplier"] is JToken multiplierElement) {
-									if (multiplierElement.Type == JTokenType.Integer || multiplierElement.Type == JTokenType.Float)
-										model.TokenMultiplier = multiplierElement.Value<double>();
+							// Only /chat/completions models are usable - Semantic Kernel's OpenAI
+							// connector talks to that endpoint, and the service hard-rejects the rest
+							// with 400 unsupported_api_for_model. Roughly half the picker catalogue
+							// (the gpt-5.4+/grok/mai-code families) is /responses-only.
+							if (modelElement["supported_endpoints"] is JArray endpointsArray) {
+								foreach (var endpoint in endpointsArray) {
+									var name = endpoint?.ToString();
+									if (!string.IsNullOrEmpty(name))
+										model.SupportedEndpoints.Add(name);
 								}
 
-								if (billingElement["is_premium"] is JToken premiumElement)
-									model.IsPreview = premiumElement.Value<bool>(); // Premium models shown as preview
+								if (!model.SupportedEndpoints.Contains("/chat/completions"))
+									continue;
+							}
+
+							// preview is a top-level flag; billing.is_premium is NOT a preview signal
+							// (every model is premium under usage-based billing).
+							if (modelElement["preview"] is JToken previewElement && previewElement.Type == JTokenType.Boolean)
+								model.IsPreview = previewElement.Value<bool>();
+
+							model.PriceCategory = modelElement["model_picker_price_category"]?.ToString();
+							model.PickerCategory = modelElement["model_picker_category"]?.ToString();
+
+							// Parse billing info. billing.multiplier is gone as of API version
+							// 2026-08-01 - usage-based billing reports token_prices instead, quoted
+							// per batch_size tokens. "default" is the standard context window;
+							// a "long_context" block may also be present at a different rate.
+							if (modelElement["billing"] is JObject billingElement &&
+								billingElement["token_prices"] is JObject tokenPrices) {
+								if (tokenPrices["batch_size"] is JToken batchSize &&
+									(batchSize.Type == JTokenType.Integer || batchSize.Type == JTokenType.Float))
+									model.PriceBatchSize = batchSize.Value<long>();
+
+								if (tokenPrices["default"] is JObject defaultPrices) {
+									if (defaultPrices["input_price"] is JToken inputPrice &&
+										(inputPrice.Type == JTokenType.Integer || inputPrice.Type == JTokenType.Float))
+										model.InputPrice = inputPrice.Value<double>();
+
+									if (defaultPrices["output_price"] is JToken outputPrice &&
+										(outputPrice.Type == JTokenType.Integer || outputPrice.Type == JTokenType.Float))
+										model.OutputPrice = outputPrice.Value<double>();
+								}
 							}
 
 							// Parse capabilities info
@@ -689,7 +784,7 @@ namespace PilotAIAssistantControl {
 
 							// Check for is_chat_default flag
 							if (modelElement["is_chat_default"] is JToken defaultElement) {
-								if (defaultElement.Value<bool>())
+								if (defaultElement.Type == JTokenType.Boolean && defaultElement.Value<bool>())
 									model.IsPreview = false; // Default models are not preview
 							}
 							if (model.Name.Contains("beta", StringComparison.CurrentCultureIgnoreCase))
@@ -706,10 +801,10 @@ namespace PilotAIAssistantControl {
 					}
 				}
 
-				// Sort models: non-preview/beta first, then by token multiplier (lower first), then alphabetically
+				// Sort models: non-preview/beta first, then cheapest price band first, then alphabetically
 				result.Models = result.Models
 					.OrderBy(m => m.IsBeta || m.IsPreview ? 1 : 0)
-					.ThenBy(m => m.TokenMultiplier ?? 1.0)
+					.ThenBy(m => CopilotModel.PriceCategoryRank(m.PriceCategory))
 					.ThenBy(m => m.Name)
 					.ToList();
 
@@ -750,6 +845,72 @@ namespace PilotAIAssistantControl {
 		/// </summary>
 		public static string GetModelsUrl(CopilotApiToken apiToken) {
 			return $"{apiToken.ApiEndpoint}/models";
+		}
+	}
+
+	/// <summary>
+	/// <summary>
+	/// HTTP message handler that automatically refreshes GitHub Copilot tokens on 401 errors.
+	/// This handler intercepts unauthorized responses and attempts to refresh the token before retrying.
+	/// </summary>
+	public class CopilotTokenRefreshHandler : DelegatingHandler {
+		/// <summary>
+		/// Callback to refresh the token. Should return true if refresh was successful.
+		/// </summary>
+		public Func<Task<bool>>? RefreshTokenCallback { get; set; }
+
+		/// <summary>
+		/// Callback to get the current token value (after refresh).
+		/// </summary>
+		public Func<string?>? GetCurrentToken { get; set; }
+
+		/// <summary>
+		/// Maximum number of retry attempts on 401 errors.
+		/// </summary>
+		public int MaxRetries { get; set; } = 1;
+
+		public CopilotTokenRefreshHandler(HttpMessageHandler innerHandler) : base(innerHandler) {
+		}
+
+		public CopilotTokenRefreshHandler() : base(new HttpClientHandler()) {
+		}
+
+		protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+			int attempt = 0;
+			HttpResponseMessage? response = null;
+
+			while (attempt <= MaxRetries) {
+				response = await base.SendAsync(request, cancellationToken);
+
+				// If not 401 Unauthorized, or no refresh callback, just return
+				if (response.StatusCode != HttpStatusCode.Unauthorized || RefreshTokenCallback == null) {
+					return response;
+				}
+
+				attempt++;
+				if (attempt > MaxRetries) {
+					return response; // Return the 401 response after max retries
+				}
+
+				// Attempt to refresh the token
+				var refreshSuccess = await RefreshTokenCallback();
+				if (!refreshSuccess) {
+					return response; // Return the 401 response if refresh failed
+				}
+
+				// Update the Authorization header with the new token
+				if (GetCurrentToken != null) {
+					var newToken = GetCurrentToken();
+					if (!string.IsNullOrEmpty(newToken)) {
+						request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", newToken);
+					}
+				}
+
+				// Dispose the old response before retrying
+				response.Dispose();
+			}
+
+			return response!;
 		}
 	}
 }

@@ -4,7 +4,8 @@ using System;
 #if WPF
 using System.Windows;
 using System.Windows.Controls;
-using MdXaml;
+
+using MdXaml.SyntaxHigh;
 #else
 using CommunityToolkit.WinUI.UI.Controls;
 //using CommunityToolkit.WinUI.Controls;

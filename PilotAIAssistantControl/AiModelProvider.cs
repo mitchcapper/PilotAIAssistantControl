@@ -49,7 +49,7 @@ namespace PilotAIAssistantControl {
 			string Endpoint { get; set; }
 			string ModelId { get; set; }
 			string Token { get; set; }
-			string ModelsListEndpoint { get; set; }
+			string? ModelsListEndpoint { get; set; }
 		}
 		public class GenericProviderUserData : BaseNotifyObject, IUserData {
 			public string Endpoint { get; set; }
@@ -146,6 +146,22 @@ namespace PilotAIAssistantControl {
 		string DefaultModelId { get; }
 		string DefaultEndpoint { get; }
 		string DefaultModelListEndpoint { get; }
+	}
+
+	/// <summary>
+	/// Interface for AI providers that support automatic token refresh on expiration.
+	/// </summary>
+	public interface ISupportsTokenRefresh {
+		/// <summary>
+		/// Attempts to refresh the authentication token.
+		/// </summary>
+		/// <returns>True if token was refreshed successfully, false otherwise.</returns>
+		Task<bool> RefreshTokenAsync();
+
+		/// <summary>
+		/// Gets the current valid token after a successful refresh.
+		/// </summary>
+		string? CurrentToken { get; }
 	}
 
 
